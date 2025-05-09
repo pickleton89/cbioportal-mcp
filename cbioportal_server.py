@@ -179,15 +179,36 @@ class CBioPortalMCPServer:
               - has_more: Boolean indicating if more pages exist
         """
         try:
-            # Fetch all studies
-            studies = self._make_api_request("studies")
-
-            # Limit the number of studies returned to prevent overwhelming the context
-            # A note is added to inform the user that the list is truncated.
+            params = {
+                "pageNumber": page_number,
+                "pageSize": page_size,
+                "direction": direction
+            }
+            
+            # Add optional sorting parameter if provided
+            if sort_by:
+                params["sortBy"] = sort_by
+                
+            # Special case: if limit is 0, fetch all results using a very large page size
+            if limit == 0:
+                params["pageSize"] = 10000000  # Very large number to get all results
+                
+            # Fetch studies with pagination
+            studies = self._make_api_request("studies", params=params)
+            
+            # Apply limit if specified (and not 0)
+            if limit and limit > 0 and len(studies) > limit:
+                studies = studies[:limit]
+                
+            # Return paginated results with metadata
             return {
-                "count": len(studies),
-                "studies": studies[:20],  # Return only the first 20 studies
-                "note": "Showing first 20 studies. Use search_studies to find specific studies or request more.",
+                "studies": studies,
+                "pagination": {
+                    "page": page_number,
+                    "page_size": page_size,
+                    "total_found": len(studies),  # This is approximate since we don't have the total from the API
+                    "has_more": len(studies) >= page_size  # If we got a full page, there might be more
+                }
             }
         except Exception as e:
             # Return an error dictionary if the API call fails
@@ -416,15 +437,39 @@ class CBioPortalMCPServer:
               - has_more: Boolean indicating if more pages exist
         """
         try:
-            # The cBioPortal API has a search endpoint for genes
-            # Using a POST request with the keyword in the body
-            payload = {"keyword": keyword}
-            matching_genes = self._make_api_request(
-                "genes/search", method="POST", json_data=payload
-            )
-
-            # The API returns a list of matching genes
-            return {"count": len(matching_genes), "matching_genes": matching_genes}
+            # Special case for "all results" request
+            if limit == 0:
+                page_size = 10000000  # API's maximum
+            
+            # The API endpoint is 'genes' with query parameters, not 'genes/search'
+            params = {
+                "keyword": keyword,
+                "pageNumber": page_number,
+                "pageSize": page_size,
+                "direction": direction
+            }
+            
+            if sort_by:
+                params["sortBy"] = sort_by
+                
+            matching_genes = self._make_api_request("genes", params=params)
+            
+            # Apply limit if specified
+            if limit and limit > 0 and len(matching_genes) > limit:
+                matching_genes = matching_genes[:limit]
+                
+            # Determine if more results are likely available
+            has_more = len(matching_genes) == page_size
+            
+            return {
+                "genes": matching_genes,
+                "pagination": {
+                    "page": page_number,
+                    "page_size": page_size,
+                    "total_found": None,  # API doesn't provide this
+                    "has_more": has_more
+                }
+            }
         except Exception as e:
             # Return an error dictionary if the API call fails
             return {"error": f"Failed to search genes for '{keyword}': {str(e)}"}
