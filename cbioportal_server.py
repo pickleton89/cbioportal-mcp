@@ -5,10 +5,10 @@ Provides Model Context Protocol tools for accessing the cBioPortal API with full
 """
 
 import argparse
-import json
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
+
 import requests
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 class CBioPortalMCPServer:
     """
@@ -19,7 +19,7 @@ class CBioPortalMCPServer:
         self.mcp = FastMCP(
             name="cBioPortal",
             description="Access cancer genomics data from cBioPortal",
-            instructions="This server provides tools to access and analyze cancer genomics data from cBioPortal."
+            instructions="This server provides tools to access and analyze cancer genomics data from cBioPortal.",
         )
         self._register_tools()
 
@@ -61,23 +61,36 @@ class CBioPortalMCPServer:
         Get a list of cancer studies in cBioPortal with pagination support.
         """
         try:
-            params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
+            api_call_params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
             if sort_by:
-                params["sortBy"] = sort_by
-            if limit == 0:
-                params["pageSize"] = 10000000
-            studies = self._make_api_request("studies", params=params)
-            if limit and limit > 0 and len(studies) > limit:
-                studies = studies[:limit]
-            total_found = len(studies)
-            has_more = (page_number + 1) * page_size < total_found
+                api_call_params["sortBy"] = sort_by
+            if limit == 0: # Intent to fetch all, use a very large page size for API call
+                api_call_params["pageSize"] = 10000000
+            # If limit is non-zero, api_call_params["pageSize"] remains the original page_size for the API call.
+            
+            studies_from_api = self._make_api_request("studies", params=api_call_params)
+
+            # Determine if the API might have more data
+            api_might_have_more = len(studies_from_api) == api_call_params["pageSize"]
+            # If 'fetch all' was intended and API returned less than max fetch size, then it's definitely the end.
+            if api_call_params["pageSize"] == 10000000 and len(studies_from_api) < 10000000:
+                api_might_have_more = False
+
+            # Apply server-side limit if specified (after fetching the page from API)
+            studies_for_response = studies_from_api
+            if limit and limit > 0 and len(studies_from_api) > limit:
+                studies_for_response = studies_from_api[:limit]
+            
+            # total_found in pagination now means number of items in this specific response payload
+            total_items_in_response = len(studies_for_response)
+
             return {
-                "studies": studies,
+                "studies": studies_for_response,
                 "pagination": {
                     "page": page_number,
-                    "page_size": page_size,
-                    "total_found": total_found,
-                    "has_more": has_more
+                    "page_size": page_size, # Report original requested page_size to client
+                    "total_found": total_items_in_response, 
+                    "has_more": api_might_have_more
                 }
             }
         except Exception as e:
@@ -88,23 +101,31 @@ class CBioPortalMCPServer:
         Get a list of all available cancer types in cBioPortal with pagination support.
         """
         try:
-            params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
+            api_call_params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
             if sort_by:
-                params["sortBy"] = sort_by
+                api_call_params["sortBy"] = sort_by
             if limit == 0:
-                params["pageSize"] = 10000000
-            types = self._make_api_request("cancer-types", params=params)
-            if limit and limit > 0 and len(types) > limit:
-                types = types[:limit]
-            total_found = len(types)
-            has_more = (page_number + 1) * page_size < total_found
+                api_call_params["pageSize"] = 10000000
+            
+            types_from_api = self._make_api_request("cancer-types", params=api_call_params)
+
+            api_might_have_more = len(types_from_api) == api_call_params["pageSize"]
+            if api_call_params["pageSize"] == 10000000 and len(types_from_api) < 10000000:
+                api_might_have_more = False
+
+            types_for_response = types_from_api
+            if limit and limit > 0 and len(types_from_api) > limit:
+                types_for_response = types_from_api[:limit]
+            
+            total_items_in_response = len(types_for_response)
+
             return {
-                "cancer_types": types,
+                "cancer_types": types_for_response,
                 "pagination": {
                     "page": page_number,
                     "page_size": page_size,
-                    "total_found": total_found,
-                    "has_more": has_more
+                    "total_found": total_items_in_response,
+                    "has_more": api_might_have_more
                 }
             }
         except Exception as e:
@@ -115,50 +136,70 @@ class CBioPortalMCPServer:
         Get a list of samples associated with a specific cancer study with pagination support.
         """
         try:
-            params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
+            api_call_params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
             if sort_by:
-                params["sortBy"] = sort_by
+                api_call_params["sortBy"] = sort_by
             if limit == 0:
-                params["pageSize"] = 10000000
-            samples = self._make_api_request(f"studies/{study_id}/samples", params=params)
-            if limit and limit > 0 and len(samples) > limit:
-                samples = samples[:limit]
-            total_found = len(samples)
-            has_more = (page_number + 1) * page_size < total_found
+                api_call_params["pageSize"] = 10000000
+
+            samples_from_api = self._make_api_request(f"studies/{study_id}/samples", params=api_call_params)
+            
+            api_might_have_more = len(samples_from_api) == api_call_params["pageSize"]
+            if api_call_params["pageSize"] == 10000000 and len(samples_from_api) < 10000000:
+                api_might_have_more = False
+
+            samples_for_response = samples_from_api
+            if limit and limit > 0 and len(samples_from_api) > limit:
+                samples_for_response = samples_from_api[:limit]
+
+            total_items_in_response = len(samples_for_response)
+            
             return {
-                "samples": samples,
+                "samples": samples_for_response,
                 "pagination": {
                     "page": page_number,
                     "page_size": page_size,
-                    "total_found": total_found,
-                    "has_more": has_more
+                    "total_found": total_items_in_response,
+                    "has_more": api_might_have_more
                 }
             }
         except Exception as e:
-            return {"error": f"Failed to get samples for {study_id}: {str(e)}"}
+            return {"error": f"Failed to get samples for study {study_id}: {str(e)}"}
 
     def search_genes(self, keyword: str, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
         """
         Search for genes by keyword in their symbol or name with pagination support.
         """
         try:
-            params = {"keyword": keyword, "pageNumber": page_number, "pageSize": page_size, "direction": direction}
+            api_call_params = {"keyword": keyword, "pageNumber": page_number, "pageSize": page_size, "direction": direction}
             if sort_by:
-                params["sortBy"] = sort_by
+                api_call_params["sortBy"] = sort_by
             if limit == 0:
-                params["pageSize"] = 10000000
-            genes = self._make_api_request("genes/search", params=params)
-            if limit and limit > 0 and len(genes) > limit:
-                genes = genes[:limit]
-            total_found = len(genes)
-            has_more = (page_number + 1) * page_size < total_found
+                api_call_params["pageSize"] = 10000000
+
+            genes_from_api = self._make_api_request("genes", params=api_call_params) # Corrected endpoint
+            
+            # Determine if the API might have more data
+            api_might_have_more = len(genes_from_api) == api_call_params["pageSize"]
+            # If 'fetch all' was intended and API returned less than max fetch size, then it's definitely the end.
+            if api_call_params["pageSize"] == 10000000 and len(genes_from_api) < 10000000:
+                api_might_have_more = False
+
+            # Apply server-side limit if specified (after fetching the page from API)
+            genes_for_response = genes_from_api
+            if limit and limit > 0 and len(genes_from_api) > limit:
+                genes_for_response = genes_from_api[:limit]
+
+            # total_found in pagination now means number of items in this specific response payload
+            total_items_in_response = len(genes_for_response)
+
             return {
-                "genes": genes,
+                "genes": genes_for_response,
                 "pagination": {
                     "page": page_number,
-                    "page_size": page_size,
-                    "total_found": total_found,
-                    "has_more": has_more
+                    "page_size": page_size, # Report original requested page_size to client
+                    "total_found": total_items_in_response,
+                    "has_more": api_might_have_more
                 }
             }
         except Exception as e:
@@ -232,67 +273,144 @@ class CBioPortalMCPServer:
     def get_mutations_in_gene(self, gene_id: str, study_id: str, sample_list_id: str, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
         """
         Get mutations in a specific gene for a given study and sample list, with pagination support.
+        Uses the /molecular-profiles/{molecularProfileId}/mutations endpoint with GET and query parameters.
+        The molecularProfileId is dynamically determined based on the studyId.
         """
         try:
-            params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
+            molecular_profiles_response = self._make_api_request(f"studies/{study_id}/molecular-profiles")
+            if isinstance(molecular_profiles_response, dict) and "api_error" in molecular_profiles_response:
+                return {"error": f"Failed to fetch molecular profiles for study {study_id} to find mutation profile", "details": molecular_profiles_response}
+
+            mutation_profile_id = None
+            if isinstance(molecular_profiles_response, list):
+                for profile in molecular_profiles_response:
+                    if profile.get("molecularAlterationType") == "MUTATION_EXTENDED":
+                        mutation_profile_id = profile.get("molecularProfileId")
+                        break
+            
+            if not mutation_profile_id:
+                return {"error": f"No MUTATION_EXTENDED molecular profile found for study {study_id}"}
+
+            api_call_params = {
+                "studyId": study_id,
+                "sampleListId": sample_list_id,
+                "pageNumber": page_number,
+                "pageSize": page_size,
+                "direction": direction
+            }
             if sort_by:
-                params["sortBy"] = sort_by
+                api_call_params["sortBy"] = sort_by
             if limit == 0:
-                params["pageSize"] = 10000000
-            endpoint = f"molecular-profiles/{gene_id}_mutation/mutations"
-            params["studyId"] = study_id
-            params["sampleListId"] = sample_list_id
-            mutations = self._make_api_request(endpoint, params=params)
-            if limit and limit > 0 and len(mutations) > limit:
-                mutations = mutations[:limit]
-            total_found = len(mutations)
-            has_more = (page_number + 1) * page_size < total_found
+                api_call_params["pageSize"] = 10000000
+            
+            if str(gene_id).isdigit():
+                api_call_params["entrezGeneId"] = gene_id
+            else:
+                api_call_params["hugoGeneSymbol"] = gene_id
+
+            endpoint = f"molecular-profiles/{mutation_profile_id}/mutations"
+            mutations_from_api = self._make_api_request(endpoint, method="GET", params=api_call_params)
+
+            if isinstance(mutations_from_api, dict) and "api_error" in mutations_from_api:
+                 return {"error": "API error fetching mutations", "details": mutations_from_api, "request_params": api_call_params}
+            if not isinstance(mutations_from_api, list):
+                return {"error": "Unexpected API response type for mutations (expected list)", "details": mutations_from_api, "request_params": api_call_params}
+
+            api_might_have_more = len(mutations_from_api) == api_call_params["pageSize"]
+            if api_call_params["pageSize"] == 10000000 and len(mutations_from_api) < 10000000:
+                api_might_have_more = False
+
+            mutations_for_response = mutations_from_api
+            if limit and limit > 0 and len(mutations_from_api) > limit:
+                mutations_for_response = mutations_from_api[:limit]
+
+            total_items_in_response = len(mutations_for_response)
+
             return {
-                "mutations": mutations,
+                "mutations": mutations_for_response,
                 "pagination": {
                     "page": page_number,
                     "page_size": page_size,
-                    "total_found": total_found,
-                    "has_more": has_more
+                    "total_found": total_items_in_response,
+                    "has_more": api_might_have_more
                 }
             }
         except Exception as e:
-            return {"error": f"Failed to get mutations for gene {gene_id}: {str(e)}"}
+            return {"error": f"An unexpected error occurred in get_mutations_in_gene: {str(e)}"}
 
     def get_clinical_data(self, study_id: str, attribute_ids: Optional[List[str]] = None, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
         """
-        Get clinical data for patients in a study with pagination support.
+        Get clinical data for patients in a study with pagination support. Can fetch specific attributes or all.
         """
         try:
-            params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
+            api_call_params = {
+                "pageNumber": page_number,
+                "pageSize": page_size,
+                "direction": direction,
+                "clinicalDataType": "PATIENT" # Assuming PATIENT level data
+            }
             if sort_by:
-                params["sortBy"] = sort_by
+                api_call_params["sortBy"] = sort_by
             if limit == 0:
-                params["pageSize"] = 10000000
+                api_call_params["pageSize"] = 10000000
+
+            clinical_data_from_api = []
             if attribute_ids:
-                params["attributeIds"] = ",".join(attribute_ids)
-            clinical_data = self._make_api_request(f"studies/{study_id}/clinical-data", params=params)
-            if limit and limit > 0 and len(clinical_data) > limit:
-                clinical_data = clinical_data[:limit]
-            total_found = len(clinical_data)
-            has_more = (page_number + 1) * page_size < total_found
+                endpoint = f"studies/{study_id}/clinical-data/fetch"
+                payload = {"attributeIds": attribute_ids, "clinicalDataType": "PATIENT"}
+                clinical_data_from_api = self._make_api_request(endpoint, method="POST", json_data=payload, params=api_call_params)
+            else:
+                endpoint = f"studies/{study_id}/clinical-data"
+                clinical_data_from_api = self._make_api_request(endpoint, method="GET", params=api_call_params)
+
+            if isinstance(clinical_data_from_api, dict) and "api_error" in clinical_data_from_api:
+                 return {"error": "API error fetching clinical data", "details": clinical_data_from_api, "request_params": api_call_params}
+            if not isinstance(clinical_data_from_api, list):
+                return {"error": "Unexpected API response type for clinical data (expected list)", "details": clinical_data_from_api, "request_params": api_call_params}
+
+            api_might_have_more = len(clinical_data_from_api) == api_call_params["pageSize"]
+            if api_call_params["pageSize"] == 10000000 and len(clinical_data_from_api) < 10000000:
+                api_might_have_more = False
+
+            # Apply server-side limit to the data that will be processed and returned
+            data_to_process = clinical_data_from_api
+            if limit and limit > 0 and len(clinical_data_from_api) > limit:
+                data_to_process = clinical_data_from_api[:limit]
+            
+            # total_found in pagination now means number of items in this specific response payload (after potential server-side limit)
+            total_items_in_response = len(data_to_process)
+
+            by_patient = {}
+            for item in data_to_process:
+                patient_id = item.get("patientId")
+                if patient_id:
+                    if patient_id not in by_patient:
+                        by_patient[patient_id] = {}
+                    by_patient[patient_id][item.get("clinicalAttributeId")] = item.get("value")
+            
             return {
-                "clinical_data": clinical_data,
+                "clinical_data_by_patient": by_patient, # This now reflects the (potentially limited) data_to_process
                 "pagination": {
                     "page": page_number,
                     "page_size": page_size,
-                    "total_found": total_found,
-                    "has_more": has_more
+                    "total_found": total_items_in_response, 
+                    "has_more": api_might_have_more
                 }
             }
         except Exception as e:
-            return {"error": f"Failed to get clinical data for {study_id}: {str(e)}"}
+            return {"error": f"Failed to get clinical data for study {study_id}: {str(e)}"}
 
     # --- Other methods ---
 
     def get_study_details(self, study_id: str) -> Dict:
         """
         Get detailed information about a specific cancer study.
+
+        Args:
+            study_id: The ID of the cancer study (e.g., 'acc_tcga').
+
+        Returns:
+            A dictionary containing the study details.
         """
         try:
             study = self._make_api_request(f"studies/{study_id}")
@@ -309,7 +427,7 @@ class CBioPortalMCPServer:
             gene_data = self._make_api_request("genes/fetch", method="POST", params=params, json_data=gene_ids)
             return {"genes": gene_data}
         except Exception as e:
-            return {"error": f"Failed to get gene information: {str(e)}"}
+            return {"error": "Failed to get gene information: " + str(e)}
 
     def run(self, transport: str = "stdio"):
         if transport.lower() == "stdio":
@@ -328,920 +446,9 @@ def main():
     except KeyboardInterrupt:
         print("\nServer stopped by user.", flush=True)
     except Exception as e:
-        print(f"An error occurred during server execution: {str(e)}", flush=True)
+        print("An error occurred during server execution: " + str(e), flush=True)
 
 if __name__ == "__main__":
     main()
 
 # End of file
-    """
-    An MCP server that interfaces with the cBioPortal API using FastMCP.
-    """
-
-    def __init__(self, base_url: str = "https://www.cbioportal.org/api"):
-        """
-        Initialize the server with the cBioPortal API base URL and register tools.
-
-        Args:
-            base_url: The base URL for the cBioPortal API
-        """
-        self.base_url = base_url
-
-        # Initialize FastMCP server with name and description
-        self.mcp = FastMCP(
-            name="cBioPortal",
-            description="Access cancer genomics data from cBioPortal",
-            instructions="This server provides tools to access and analyze cancer genomics data from cBioPortal.",
-        )
-
-        # Register all tools after self.mcp is initialized
-        self._register_tools()
-
-    def _register_tools(self):
-        """Register all the tools with the FastMCP instance."""
-        # Call self.mcp.tool() on each method to register it as a tool
-        self.mcp.tool()(self.get_cancer_studies)
-        self.mcp.tool()(self.get_cancer_types)
-        self.mcp.tool()(self.get_study_details)
-        self.mcp.tool()(self.get_samples_in_study)
-        self.mcp.tool()(self.get_genes)
-        self.mcp.tool()(self.search_genes)
-        self.mcp.tool()(self.get_mutations_in_gene)  # Updated tool
-        self.mcp.tool()(self.get_clinical_data)
-        self.mcp.tool()(self.get_molecular_profiles)
-        self.mcp.tool()(self.search_studies)
-
-    def _make_api_request(
-        self,
-        endpoint: str,
-        method: str = "GET",
-        params: Optional[Dict[str, Any]] = None,
-        json_data: Optional[Dict[str, Any]] = None,
-    ) -> Any:
-        """
-        Make a request to the cBioPortal API.
-
-        Args:
-            endpoint: The API endpoint (without leading slash)
-            method: HTTP method ('GET' or 'POST')
-            params: Optional query parameters for GET requests
-            json_data: Optional JSON payload for POST requests
-
-        Returns:
-            The JSON response from the API. Can be a list or a dictionary.
-
-        Raises:
-            Exception: If the API request fails or the response is not valid JSON.
-        """
-        url = f"{self.base_url}/{endpoint}"
-        # Removed terminal debug prints, will include in tool response if error
-
-        try:
-            if method.upper() == "GET":
-                response = requests.get(url, params=params)
-            elif method.upper() == "POST":
-                # cBioPortal API often uses POST with a JSON body for fetching data
-                response = requests.post(url, json=json_data)
-            else:
-                raise ValueError(f"Unsupported HTTP method: {method}")
-
-            response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
-
-            # Check if the response body is empty before attempting to parse JSON
-            if not response.text:
-                # Depending on the API endpoint, an empty response might be valid (e.g., no data found)
-                # Returning an empty list or dictionary is safer than raising an error.
-                # We'll return an empty list if the response was likely meant to be a list, else empty dict.
-                # A simple check could be if the endpoint name suggests a list (plural).
-                if endpoint.endswith("s") or endpoint.endswith(
-                    "fetch"
-                ):  # Basic heuristic
-                    return []
-                else:
-                    return {}  # Or return None, but empty dict/list is often easier to handle downstream
-
-            return response.json()
-
-        except requests.exceptions.HTTPError as e:
-            # More specific error for HTTP issues
-            try:
-                error_details = e.response.json()
-            except json.JSONDecodeError:
-                error_details = (
-                    e.response.text
-                )  # Fallback to raw text if JSON decoding fails
-            # Return structured error including API status and details
-            return {
-                "api_error": f"API HTTP error: {e.response.status_code}",
-                "api_details": error_details,
-                "requested_url": url,
-                "requested_method": method,
-                "requested_params": params,
-                "requested_json_data": json_data,
-            }
-        except requests.RequestException as e:
-            # Catch other requests library errors (network issues, etc.)
-            return {
-                "api_error": f"API request failed: {str(e)}",
-                "requested_url": url,
-                "requested_method": method,
-                "requested_params": params,
-                "requested_json_data": json_data,
-            }
-        except json.JSONDecodeError:
-            # Handle cases where the response is not valid JSON but wasn't empty
-            return {
-                "api_error": "Failed to decode API response as JSON",
-                "response_text": response.text,
-                "requested_url": url,
-                "requested_method": method,
-                "requested_params": params,
-                "requested_json_data": json_data,
-            }
-        except Exception as e:
-            # Catch any other unexpected errors
-            return {
-                "api_error": f"An unexpected error occurred during API request: {str(e)}",
-                "requested_url": url,
-                "requested_method": method,
-                "requested_params": params,
-                "requested_json_data": json_data,
-            }
-
-    def get_cancer_studies(
-        self,
-        page_number: int = 0,
-        page_size: int = 50,
-        sort_by: Optional[str] = None,
-        direction: str = "ASC",
-        limit: Optional[int] = None
-    ) -> Dict:
-        """
-        Get a list of cancer studies in cBioPortal with pagination support.
-        
-        Args:
-            page_number: Page number (0-indexed) to retrieve
-            page_size: Number of studies per page (default: 50)
-            sort_by: Field to sort by. Valid options: "studyId", "name", "description",
-                    "publicStudy", "cancerTypeId", "status"
-            direction: Sort direction ("ASC" or "DESC")
-            limit: Maximum total results to return across all pages
-                    Set to None to use pagination, 0 for all results
-        
-        Returns:
-            A dictionary containing:
-            - studies: List of study objects
-            - pagination: Dictionary with pagination metadata
-              - page: Current page number
-              - page_size: Items per page
-              - total_found: Total number of studies matching criteria (if available)
-              - has_more: Boolean indicating if more pages exist
-        """
-        try:
-            params = {
-                "pageNumber": page_number,
-                "pageSize": page_size,
-                "direction": direction
-            }
-            
-            # Add optional sorting parameter if provided
-            if sort_by:
-                params["sortBy"] = sort_by
-                
-            # Special case: if limit is 0, fetch all results using a very large page size
-            if limit == 0:
-                params["pageSize"] = 10000000  # Very large number to get all results
-                
-            # Fetch studies with pagination
-            studies = self._make_api_request("studies", params=params)
-            
-            # Apply limit if specified (and not 0)
-            if limit and limit > 0 and len(studies) > limit:
-                studies = studies[:limit]
-                
-            # Return paginated results with metadata
-            return {
-                "studies": studies,
-                "pagination": {
-                    "page": page_number,
-                    "page_size": page_size,
-                    "total_found": len(studies),  # This is approximate since we don't have the total from the API
-                    "has_more": len(studies) >= page_size  # If we got a full page, there might be more
-                }
-            }
-        except Exception as e:
-            # Return an error dictionary if the API call fails
-            return {"error": f"Failed to get cancer studies: {str(e)}"}
-
-    def get_cancer_types(
-        self,
-        page_number: int = 0,
-        page_size: int = 50,
-        sort_by: Optional[str] = None,
-        direction: str = "ASC",
-        limit: Optional[int] = None
-    ) -> Dict:
-        """
-        Get a list of all available cancer types in cBioPortal with pagination support.
-
-        Args:
-            page_number: Page number (0-indexed) to retrieve
-            page_size: Number of cancer types per page (default: 50)
-            sort_by: Field to sort by. Valid options: "cancerTypeId", "name", "dedicatedColor",
-                    "shortName", "parent"
-            direction: Sort direction ("ASC" or "DESC")
-            limit: Maximum total results to return across all pages
-                    Set to None to use pagination, 0 for all results
-            
-        Returns:
-            A dictionary containing:
-            - cancer_types: List of cancer type objects
-            - pagination: Dictionary with pagination metadata
-              - page: Current page number
-              - page_size: Items per page
-              - total_found: Total number of cancer types matching criteria (if available)
-              - has_more: Boolean indicating if more pages exist
-        """
-        try:
-            # Special case for "all results" request
-            if limit == 0:
-                page_size = 10000000  # API's maximum
-                
-            params = {
-                "pageNumber": page_number,
-                "pageSize": page_size,
-                "direction": direction
-            }
-            
-            if sort_by:
-                params["sortBy"] = sort_by
-                
-            cancer_types = self._make_api_request("cancer-types", params=params)
-            
-            # Apply limit if specified
-            if limit and limit > 0 and len(cancer_types) > limit:
-                cancer_types = cancer_types[:limit]
-                
-            # Determine if more results are likely available
-            has_more = len(cancer_types) == page_size
-            
-            return {
-                "cancer_types": cancer_types,
-                "pagination": {
-                    "page": page_number,
-                    "page_size": page_size,
-                    "total_found": None,  # API doesn't provide this
-                    "has_more": has_more
-                }
-            }
-        except Exception as e:
-            # Return an error dictionary if the API call fails
-            return {"error": f"Failed to get cancer types: {str(e)}"}
-
-    def get_study_details(self, study_id: str) -> Dict:
-        """
-        Get detailed information about a specific cancer study.
-
-        Args:
-            study_id: The ID of the cancer study (e.g., 'acc_tcga').
-
-        Returns:
-            A dictionary containing the study details.
-        """
-        try:
-            # Fetch study details
-            study = self._make_api_request(f"studies/{study_id}")
-
-            return {"study": study}
-        except Exception as e:
-            # Return an error dictionary if the API call fails
-            return {"error": f"Failed to get study details for {study_id}: {str(e)}"}
-
-    def get_samples_in_study(
-        self, 
-        study_id: str,
-        page_number: int = 0,
-        page_size: int = 50,
-        sort_by: Optional[str] = None,
-        direction: str = "ASC",
-        limit: Optional[int] = None
-    ) -> Dict:
-        """
-        Get a list of samples associated with a specific cancer study with pagination support.
-
-        Args:
-            study_id: The ID of the cancer study (e.g., 'acc_tcga').
-            page_number: Page number (0-indexed) to retrieve
-            page_size: Number of samples per page (default: 50)
-            sort_by: Field to sort by. Valid options: "sampleId", "sampleType"
-            direction: Sort direction ("ASC" or "DESC")
-            limit: Maximum total results to return across all pages
-                    Set to None to use pagination, 0 for all results
-                    
-        Returns:
-            A dictionary containing:
-            - samples: List of sample objects
-            - pagination: Dictionary with pagination metadata
-              - page: Current page number
-              - page_size: Items per page
-              - total_found: Total number of samples matching criteria (if available)
-              - has_more: Boolean indicating if more pages exist
-        """
-        try:
-            # Special case for "all results" request
-            if limit == 0:
-                page_size = 10000000  # API's maximum
-                
-            params = {
-                "pageNumber": page_number,
-                "pageSize": page_size,
-                "direction": direction
-            }
-            
-            if sort_by:
-                params["sortBy"] = sort_by
-                
-            samples = self._make_api_request(f"studies/{study_id}/samples", params=params)
-            
-            # Apply limit if specified
-            if limit and limit > 0 and len(samples) > limit:
-                samples = samples[:limit]
-                
-            # Determine if more results are likely available
-            has_more = len(samples) == page_size
-            
-            return {
-                "samples": samples,
-                "pagination": {
-                    "page": page_number,
-                    "page_size": page_size,
-                    "total_found": None,  # API doesn't provide this
-                    "has_more": has_more
-                }
-            }
-        except Exception as e:
-            # Return an error dictionary if the API call fails
-            return {"error": f"Failed to get samples for {study_id}: {str(e)}"}
-
-    def get_genes(
-        self, 
-        gene_ids: List[str],
-        gene_id_type: str = "ENTREZ_GENE_ID",
-        projection: str = "SUMMARY"
-    ) -> Dict:
-        """
-        Get information about specific genes by their Hugo symbol or Entrez ID.
-
-        Args:
-            gene_ids: List of Hugo gene symbols or Entrez gene IDs (e.g., ['BRCA1', 'TP53', '672']).
-            gene_id_type: Type of gene ID provided. Options: "ENTREZ_GENE_ID", "HUGO_GENE_SYMBOL"
-            projection: Level of detail in the response. Options: "ID", "SUMMARY", "DETAILED", "META"
-
-        Returns:
-            A dictionary containing:
-            - genes: List of gene objects with information for each requested gene
-        """
-        try:
-            # Use the batch endpoint to fetch multiple genes in a single request
-            # The endpoint takes a list of gene IDs in the request body
-            params = {
-                "geneIdType": gene_id_type,
-                "projection": projection
-            }
-            
-            gene_data = self._make_api_request(
-                "genes/fetch",
-                method="POST",
-                params=params,
-                json_data=gene_ids
-            )
-            
-            return {"genes": gene_data}
-        except Exception as e:
-            # Return a general error if the overall process fails
-            return {"error": f"Failed to get gene information: {str(e)}"}
-
-    def search_genes(
-        self, 
-        keyword: str,
-        page_number: int = 0,
-        page_size: int = 50,
-        sort_by: Optional[str] = None,
-        direction: str = "ASC",
-        limit: Optional[int] = None
-    ) -> Dict:
-        """
-        Search for genes by keyword in their symbol or name with pagination support.
-
-        Args:
-            keyword: Keyword to search for (e.g., 'BRCA', 'kinase').
-            page_number: Page number (0-indexed) to retrieve
-            page_size: Number of genes per page (default: 50)
-            sort_by: Field to sort by. Valid options: "entrezGeneId", "hugoGeneSymbol", "type", 
-                    "cytoband", "length"
-            direction: Sort direction ("ASC" or "DESC")
-            limit: Maximum total results to return across all pages
-                    Set to None to use pagination, 0 for all results
-
-        Returns:
-            A dictionary containing:
-            - genes: List of gene objects matching the keyword
-            - pagination: Dictionary with pagination metadata
-              - page: Current page number
-              - page_size: Items per page
-              - total_found: Total number of genes matching criteria (if available)
-              - has_more: Boolean indicating if more pages exist
-        """
-        try:
-            # Special case for "all results" request
-            if limit == 0:
-                page_size = 10000000  # API's maximum
-            
-            # The API endpoint is 'genes' with query parameters, not 'genes/search'
-            params = {
-                "keyword": keyword,
-                "pageNumber": page_number,
-                "pageSize": page_size,
-                "direction": direction
-            }
-            
-            if sort_by:
-                params["sortBy"] = sort_by
-                
-            matching_genes = self._make_api_request("genes", params=params)
-            
-            # Apply limit if specified
-            if limit and limit > 0 and len(matching_genes) > limit:
-                matching_genes = matching_genes[:limit]
-                
-            # Determine if more results are likely available
-            has_more = len(matching_genes) == page_size
-            
-            return {
-                "genes": matching_genes,
-                "pagination": {
-                    "page": page_number,
-                    "page_size": page_size,
-                    "total_found": None,  # API doesn't provide this
-                    "has_more": has_more
-                }
-            }
-        except Exception as e:
-            # Return an error dictionary if the API call fails
-            return {"error": f"Failed to search genes for '{keyword}': {str(e)}"}
-
-    # --- UPDATED TOOL: get_mutations_in_gene ---
-    def get_mutations_in_gene(
-        self, gene_id: str, study_id: str, sample_list_id: str,
-        page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None,
-        direction: str = "ASC", limit: Optional[int] = None
-    ) -> Dict:
-        """
-        Get mutations in a specific gene for a given study and sample list, with pagination support.
-        Uses the /molecular-profiles/{molecularProfileId}/mutations endpoint with GET and query parameters.
-
-        Args:
-            gene_id: Hugo gene symbol or Entrez gene ID (e.g., 'BRCA1' or '672').
-            study_id: The ID of the cancer study (e.g., 'acc_tcga').
-            sample_list_id: The ID of the sample list within the study (e.g., 'acc_tcga_all').
-            page_number: Page number (0-indexed) to retrieve
-            page_size: Number of mutations per page (default: 50)
-            sort_by: Field to sort by. Valid options: "entrezGeneId", "center", "mutationStatus",
-                    "validationStatus", "tumorAltCount", "tumorRefCount", "normalAltCount",
-                    "normalRefCount", "aminoAcidChange", "startPosition", "endPosition",
-                    "referenceAllele", "variantAllele", "proteinChange", "mutationType",
-                    "ncbiBuild", "variantType", "refseqMrnaId", "proteinPosStart",
-                    "proteinPosEnd", "keyword"
-            direction: Sort direction ("ASC" or "DESC")
-            limit: Maximum total results to return across all pages
-                    Set to None to use pagination, 0 for all results
-
-        Returns:
-            A dictionary containing:
-            - mutations: List of mutation objects
-            - pagination: Dictionary with pagination metadata
-              - page: Current page number
-              - page_size: Items per page
-              - total_found: Total number of mutations matching criteria (if available)
-              - has_more: Boolean indicating if more pages exist
-        """
-        try:
-            # First, find the molecular profile ID for mutations in the study
-            # This step is necessary because the GET endpoint requires the molecular profile ID in the path.
-            molecular_profiles_response = self._make_api_request(
-                f"studies/{study_id}/molecular-profiles"
-            )
-
-            # Check if fetching molecular profiles resulted in an API error
-            if (
-                isinstance(molecular_profiles_response, dict)
-                and "api_error" in molecular_profiles_response
-            ):
-                return {
-                    "error": f"Failed to fetch molecular profiles for study {study_id}",
-                    "details": molecular_profiles_response,
-                }
-
-            mutation_profile_id = None
-            # Look for the profile with molecularAlterationType "MUTATION_EXTENDED"
-            if isinstance(
-                molecular_profiles_response, list
-            ):  # Ensure response is a list before iterating
-                for profile in molecular_profiles_response:
-                    if profile.get("molecularAlterationType") == "MUTATION_EXTENDED":
-                        mutation_profile_id = profile.get("molecularProfileId")
-                        break
-            # If it wasn't a list and not an api_error, something else unexpected happened
-            elif (
-                molecular_profiles_response is not None
-                and molecular_profiles_response != {}
-            ):
-                return {
-                    "error": f"Unexpected response format fetching molecular profiles for study {study_id}",
-                    "details": molecular_profiles_response,
-                }
-
-            if not mutation_profile_id:
-                # If no mutation profile is found for the study, return an error
-                return {
-                    "error": f"No mutation data available (no MUTATION_EXTENDED profile) found for study {study_id}"
-                }
-
-            # Use the /molecular-profiles/{molecularProfileId}/mutations endpoint with GET
-            # Pass studyId and sampleListId as query parameters.
-            endpoint = f"molecular-profiles/{mutation_profile_id}/mutations"
-            params = {
-                "studyId": study_id,
-                "sampleListId": sample_list_id,
-                "pageNumber": page_number,
-                "pageSize": page_size,
-                "direction": direction
-            }
-            
-            # Special case for "all results" request
-            if limit == 0:
-                params["pageSize"] = 10000000  # API's maximum
-
-            # Add sort parameter if provided
-            if sort_by:
-                params["sortBy"] = sort_by
-
-            # Add either entrezGeneId or hugoGeneSymbol based on the input gene_id
-            if str(gene_id).isdigit():  # Ensure gene_id is treated as string for isdigit()
-                params["entrezGeneId"] = gene_id
-            else:
-                params["hugoGeneSymbol"] = gene_id
-
-            # Make the GET request with parameters
-            mutations = self._make_api_request(endpoint, method="GET", params=params)
-
-            # The API returns a list of mutations. Check if it's a list before proceeding.
-            if not isinstance(mutations, list):
-                # If the API returned an error or unexpected format, include request details
-                error_response = {
-                    "error": "API response for mutations was not a list or contained an API error",
-                    "details": mutations,  # This will contain the API error details if _make_api_request returned one
-                    "mutation_request_endpoint": endpoint,
-                    "mutation_request_params": params,
-                    "found_mutation_profile_id": mutation_profile_id,  # Include the found profile ID
-                }
-                return error_response
-                
-            # Apply limit if specified (and not 0)
-            if limit and limit > 0 and len(mutations) > limit:
-                mutations = mutations[:limit]
-                
-            # Calculate total count and has_more flag
-            total_count = len(mutations)
-            has_more = total_count == page_size  # If we got a full page, there might be more
-            
-            # Return paginated results with metadata
-            return {
-                "mutations": mutations,
-                "pagination": {
-                    "page": page_number,
-                    "page_size": page_size,
-                    "total_found": total_count,
-                    "has_more": has_more
-                }
-            }
-        except Exception as e:
-            # Return an error dictionary if the process fails
-            return {
-                "error": f"An unexpected error occurred in get_mutations_in_gene: {str(e)}"
-            }
-
-    # --- END UPDATED TOOL ---
-
-    def get_clinical_data(
-        self, study_id: str, attribute_ids: Optional[List[str]] = None,
-        page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None,
-        direction: str = "ASC", limit: Optional[int] = None
-    ) -> Dict:
-        """
-        Get clinical data for patients in a study with pagination support. Can fetch specific attributes or all.
-
-        Args:
-            study_id: The ID of the cancer study (e.g., 'acc_tcga').
-            attribute_ids: Optional list of clinical attribute IDs (e.g., ['CANCER_TYPE', 'AGE']).
-                           If None, all available clinical data attributes are returned.
-            page_number: Page number (0-indexed) to retrieve
-            page_size: Number of clinical data entries per page (default: 50)
-            sort_by: Field to sort by. Valid options: "clinicalAttributeId", "value"
-            direction: Sort direction ("ASC" or "DESC")
-            limit: Maximum total results to return across all pages
-                    Set to None to use pagination, 0 for all results
-
-        Returns:
-            A dictionary containing:
-            - clinical_data_by_patient: Dictionary of clinical data grouped by patient ID
-            - pagination: Dictionary with pagination metadata
-              - page: Current page number
-              - page_size: Items per page
-              - total_found: Total number of clinical data entries matching criteria
-              - has_more: Boolean indicating if more pages exist
-        """
-        try:
-            # Set up parameters for pagination
-            params = {
-                "pageNumber": page_number,
-                "pageSize": page_size,
-                "direction": direction,
-                "clinicalDataType": "PATIENT"  # Assuming PATIENT level data is requested
-            }
-            
-            # Special case for "all results" request
-            if limit == 0:
-                params["pageSize"] = 10000000  # API's maximum
-                
-            # Add sort parameter if provided
-            if sort_by:
-                params["sortBy"] = sort_by
-                
-            clinical_data = []
-            if attribute_ids:
-                # If specific attribute IDs are provided, use the fetch endpoint with POST
-                endpoint = f"studies/{study_id}/clinical-data/fetch"
-                payload = {
-                    "attributeIds": attribute_ids,
-                    "clinicalDataType": "PATIENT",
-                }
-                clinical_data = self._make_api_request(
-                    endpoint, method="POST", json_data=payload, params=params
-                )
-            else:
-                # If no specific attributes are requested, fetch all clinical data using GET
-                endpoint = f"studies/{study_id}/clinical-data"
-                clinical_data = self._make_api_request(endpoint, method="GET", params=params)
-
-            # Apply limit if specified (and not 0)
-            if limit and limit > 0 and len(clinical_data) > limit:
-                clinical_data = clinical_data[:limit]
-                
-            # Group the clinical data by patient ID for easier analysis
-            by_patient = {}
-            for item in clinical_data:
-                patient_id = item.get("patientId")
-                if patient_id:  # Only process entries with a valid patient ID
-                    if patient_id not in by_patient:
-                        by_patient[patient_id] = {}
-                    # Store the value under the attribute ID key for each patient
-                    by_patient[patient_id][item.get("clinicalAttributeId")] = item.get(
-                        "value"
-                    )
-            
-            # Calculate total count and has_more flag
-            total_count = len(clinical_data)
-            has_more = total_count == page_size  # If we got a full page, there might be more
-
-            return {
-                "clinical_data_by_patient": by_patient,
-                "pagination": {
-                    "page": page_number,
-                    "page_size": page_size,
-                    "total_found": total_count,
-                    "has_more": has_more
-                }
-            }
-        except Exception as e:
-            # Return an error dictionary if the process fails
-            return {"error": f"Failed to get clinical data for {study_id}: {str(e)}"}
-
-    def get_molecular_profiles(
-        self, 
-        study_id: str,
-        page_number: int = 0,
-        page_size: int = 50,
-        sort_by: Optional[str] = None,
-        direction: str = "ASC",
-        limit: Optional[int] = None
-    ) -> Dict:
-        """
-        Get a list of molecular profiles available for a specific cancer study with pagination support.
-
-        Args:
-            study_id: The ID of the cancer study (e.g., 'acc_tcga').
-            page_number: Page number (0-indexed) to retrieve
-            page_size: Number of profiles per page (default: 50)
-            sort_by: Field to sort by. Valid options: "molecularProfileId", "name", "description"
-            direction: Sort direction ("ASC" or "DESC")
-            limit: Maximum total results to return across all pages
-                    Set to None to use pagination, 0 for all results
-                
-        Returns:
-            A dictionary containing:
-            - molecular_profiles: List of molecular profile objects
-            - pagination: Dictionary with pagination metadata
-              - page: Current page number
-              - page_size: Items per page
-              - total_found: Total number of profiles matching criteria (if available)
-              - has_more: Boolean indicating if more pages exist
-        """
-        try:
-            # Special case for "all results" request
-            if limit == 0:
-                page_size = 10000000  # API's maximum
-            
-            # The API endpoint doesn't support pagination directly, so we'll handle it client-side
-            profiles = self._make_api_request(f"studies/{study_id}/molecular-profiles")
-            
-            # Sort results if requested
-            if sort_by:
-                reverse = direction.upper() == "DESC"
-                profiles.sort(key=lambda p: str(p.get(sort_by, "")), reverse=reverse)
-                
-            # Get total count before pagination
-            total_count = len(profiles)
-            
-            # Apply pagination
-            start_idx = page_number * page_size
-            end_idx = start_idx + page_size
-            paginated_profiles = profiles[start_idx:end_idx]
-            
-            # Apply limit if specified
-            if limit and limit > 0 and len(paginated_profiles) > limit:
-                paginated_profiles = paginated_profiles[:limit]
-                
-            # Determine if more results are likely available
-            has_more = end_idx < total_count
-            
-            return {
-                "molecular_profiles": paginated_profiles,
-                "pagination": {
-                    "page": page_number,
-                    "page_size": page_size,
-                    "total_found": total_count,
-                    "has_more": has_more
-                }
-            }
-        except Exception as e:
-            # Return an error dictionary if the API call fails
-            return {
-                "error": f"Failed to get molecular profiles for {study_id}: {str(e)}"
-            }
-
-    def search_studies(
-        self, 
-        keyword: str,
-        page_number: int = 0,
-        page_size: int = 50,
-        sort_by: Optional[str] = None,
-        direction: str = "ASC",
-        limit: Optional[int] = None
-    ) -> Dict:
-        """
-        Search for cancer studies by keyword in their name or description with pagination support.
-
-        Args:
-            keyword: Keyword to search for (e.g., 'melanoma', 'lung cancer').
-            page_number: Page number (0-indexed) to retrieve
-            page_size: Number of studies per page (default: 50)
-            sort_by: Field to sort by. Valid options: "studyId", "name", "description",
-                    "publicStudy", "cancerTypeId", "status"
-            direction: Sort direction ("ASC" or "DESC")
-            limit: Maximum total results to return across all pages
-                    Set to None to use pagination, 0 for all results
-
-        Returns:
-            A dictionary containing:
-            - studies: List of study objects matching the keyword
-            - pagination: Dictionary with pagination metadata
-              - page: Current page number
-              - page_size: Items per page
-              - total_found: Total number of studies matching criteria
-              - has_more: Boolean indicating if more pages exist
-        """
-        try:
-            # Special case for "all results" request
-            if limit == 0:
-                page_size = 10000000  # Very large number to get all results
-
-            # Fetch all studies first - the API doesn't have search parameters
-            all_studies = self._make_api_request("studies")
-
-            # Filter studies where the keyword appears in the name or description (case-insensitive)
-            keyword_lower = keyword.lower()
-            matching_studies = [
-                study
-                for study in all_studies
-                if keyword_lower in study.get("name", "").lower()
-                or keyword_lower in study.get("description", "").lower()
-            ]
-
-            # Sort results if requested
-            if sort_by:
-                reverse = direction.upper() == "DESC"
-                # Handle nested sorting fields safely
-                matching_studies.sort(
-                    key=lambda s: str(s.get(sort_by, "")), 
-                    reverse=reverse
-                )
-
-            # Get total count before pagination
-            total_count = len(matching_studies)
-
-            # Apply pagination
-            start_idx = page_number * page_size
-            end_idx = start_idx + page_size
-            paginated_studies = matching_studies[start_idx:end_idx]
-
-            # Apply limit if specified (and not 0)
-            if limit and limit > 0 and len(paginated_studies) > limit:
-                paginated_studies = paginated_studies[:limit]
-
-            # Determine if more results are available
-            has_more = end_idx < total_count
-
-            # Return paginated results with metadata
-            return {
-                "studies": paginated_studies,
-                "pagination": {
-                    "page": page_number,
-                    "page_size": page_size,
-                    "total_found": total_count,
-                    "has_more": has_more
-                }
-            }
-        except Exception as e:
-            # Return an error dictionary if the process fails
-            return {"error": f"Failed to search studies for '{keyword}': {str(e)}"}
-
-    def run(self, transport: str = "stdio"):
-        """
-        Run the MCP server with the specified transport mechanism.
-
-        Args:
-            transport: The transport mechanism to use ('stdio' is currently the only supported).
-        """
-        # Removed the print statement that caused the JSON error
-        # print(f"Starting cBioPortal MCP server with {transport} transport...", flush=True)
-
-        # The tools are registered in the __init__ method via _register_tools().
-        # No need to access them here just for registration purposes.
-
-        # Run the server using the specified transport
-        # FastMCP's run() method handles the transport implicitly based on configuration/environment.
-        if transport.lower() == "stdio":
-            self.mcp.run()
-        else:
-            # Raise an error for unsupported transports
-            raise ValueError(
-                f"Unsupported transport: {transport}. Currently only 'stdio' is supported."
-            )
-
-
-def main():
-    """Entry point for the cBioPortal MCP server."""
-    # Set up argument parsing for base URL and transport
-    parser = argparse.ArgumentParser(description="cBioPortal MCP Server")
-    parser.add_argument(
-        "--base-url",
-        type=str,
-        default="https://www.cbioportal.org/api",
-        help="Base URL for the cBioPortal API",
-    )
-    parser.add_argument(
-        "--transport",
-        type=str,
-        default="stdio",
-        choices=["stdio"],  # Restrict choices to currently supported transports
-        help="Transport mechanism for the MCP server (e.g., 'stdio')",
-    )
-    args = parser.parse_args()
-
-    # Create an instance of the server with the provided arguments
-    # Tool registration happens within the __init__ method
-    server = CBioPortalMCPServer(base_url=args.base_url)
-
-    # Run the server, handling KeyboardInterrupt for graceful shutdown
-    try:
-        server.run(transport=args.transport)
-    except KeyboardInterrupt:
-        print("\nServer stopped by user.", flush=True)
-    except Exception as e:
-        print(f"An error occurred during server execution: {str(e)}", flush=True)
-
-
-if __name__ == "__main__":
-    # Execute the main function when the script is run directly
-    main()

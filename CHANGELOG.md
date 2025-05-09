@@ -129,3 +129,24 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 - **Context Window Management**: Set conservative default page sizes (50 items)
 - **Progressive Information Retrieval**: Added `limit` parameter to control total results
 - **Explicit Documentation**: Added detailed comments explaining valid sort fields for each method
+
+#### Bug Fixes (Post-Pagination Implementation)
+
+- **Server-Side Logic (`cbioportal_server.py`)**:
+  - Corrected the API endpoint in the `search_genes` method from `genes/search` to the standard `genes` endpoint. This resolves an issue where tests for gene searching were failing due to an incorrect API path.
+  - Revised the `has_more` pagination flag calculation in the following methods to accurately reflect whether more data might be available from the API, rather than relying on the count of items on the current page:
+    - `get_cancer_studies`
+    - `get_cancer_types`
+    - `get_samples_in_study`
+    - `search_genes`
+    - `get_mutations_in_gene`
+    - `get_clinical_data`
+  - This change fixes previous assertion errors in tests where the `has_more` flag was incorrectly `False` when subsequent pages were expected.
+
+#### Code Improvements & Linting
+
+- **Code Health in `cbioportal_server.py`**:
+  - Removed unused Python imports (`json`, `os`, `dotenv.load_dotenv`) to clean up the codebase.
+  - Refactored error message string formatting:
+    - Converted f-strings to regular strings in instances where placeholders were not actually used, addressing lint warnings.
+    - Ensured that `study_id` (and other relevant variables) are correctly included in error messages for methods like `get_mutations_in_gene`, `get_clinical_data`, and `get_study_details` by using f-strings appropriately. This restores clarity to error messages that were inadvertently made generic.
