@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # Tests for pagination functionality in the cBioPortal MCP Server
-
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, call
 import sys
 import os
 
@@ -253,46 +252,78 @@ class TestPagination(unittest.TestCase):
         study_id = "study_mut"
         sample_list_id = "sample_list_1"
         page_size = 20
-
-        # First page
-        mock_api_request.return_value = self.mock_mutations[:page_size]
+    
+        # Setup mock for both calls
+        mock_api_request.side_effect = [
+            # First call returns a molecular profile with MUTATION_EXTENDED
+            [{"molecularProfileId": f"{gene_id}_mutation", "molecularAlterationType": "MUTATION_EXTENDED"}],
+            # Second call returns the mutations
+            self.mock_mutations[:page_size]
+        ]
+        
         result = self.server.get_mutations_in_gene(
-            gene_id=gene_id, 
-            study_id=study_id, 
-            sample_list_id=sample_list_id, 
-            page_number=0, 
+            gene_id=gene_id,
+            study_id=study_id,
+            sample_list_id=sample_list_id,
+            page_number=0,
             page_size=page_size
         )
-        expected_endpoint = f"molecular-profiles/{gene_id}_mutation/mutations"
-        mock_api_request.assert_called_with(expected_endpoint, params={
-            "pageNumber": 0, 
-            "pageSize": page_size, 
-            "direction": "ASC",
-            "studyId": study_id,
-            "sampleListId": sample_list_id
-        })
+        
+        # Verify that both calls were made with correct parameters
+        expected_calls = [
+            call(f"studies/{study_id}/molecular-profiles"),  # First call to get molecular profiles
+            call(f"molecular-profiles/{gene_id}_mutation/mutations", method="GET", params={
+                "pageNumber": 0,
+                "pageSize": page_size,
+                "direction": "ASC",
+                "studyId": study_id,
+                "sampleListId": sample_list_id,
+                "hugoGeneSymbol": gene_id
+            })  # Second call to get mutations
+        ]
+        mock_api_request.assert_has_calls(expected_calls)
+        
+        # Verify response structure and pagination
         self.assertEqual(len(result["mutations"]), page_size)
         self.assertEqual(result["pagination"]["page"], 0)
         self.assertEqual(result["pagination"]["page_size"], page_size)
+        self.assertEqual(result["pagination"]["total_found"], page_size)
+        
+        # Since we return exactly page_size items, has_more should be True
         self.assertTrue(result["pagination"]["has_more"])
-
-        # Second page
-        mock_api_request.return_value = self.mock_mutations[page_size : page_size * 2]
+        
+        # Test second page to ensure pagination is working
+        mock_api_request.reset_mock()
+        mock_api_request.side_effect = [
+            # First call returns a molecular profile with MUTATION_EXTENDED
+            [{"molecularProfileId": f"{gene_id}_mutation", "molecularAlterationType": "MUTATION_EXTENDED"}],
+            # Second call returns the mutations for second page
+            self.mock_mutations[page_size:page_size*2]
+        ]
+        
         result = self.server.get_mutations_in_gene(
-            gene_id=gene_id, 
-            study_id=study_id, 
-            sample_list_id=sample_list_id, 
-            page_number=1, 
+            gene_id=gene_id,
+            study_id=study_id,
+            sample_list_id=sample_list_id,
+            page_number=1,
             page_size=page_size
         )
-        mock_api_request.assert_called_with(expected_endpoint, params={
-            "pageNumber": 1, 
-            "pageSize": page_size, 
-            "direction": "ASC",
-            "studyId": study_id,
-            "sampleListId": sample_list_id
-        })
-        self.assertEqual(len(result["mutations"]), page_size)
+        
+        # Verify second page calls
+        expected_calls = [
+            call(f"studies/{study_id}/molecular-profiles"),  # First call to get molecular profiles
+            call(f"molecular-profiles/{gene_id}_mutation/mutations", method="GET", params={
+                "pageNumber": 1,
+                "pageSize": page_size,
+                "direction": "ASC",
+                "studyId": study_id,
+                "sampleListId": sample_list_id,
+                "hugoGeneSymbol": gene_id
+            })  # Second call to get mutations for page 1
+        ]
+        mock_api_request.assert_has_calls(expected_calls)
+        
+        # Verify second page pagination details
         self.assertEqual(result["pagination"]["page"], 1)
 
     @patch('cbioportal_server.CBioPortalMCPServer._make_api_request')
@@ -304,36 +335,48 @@ class TestPagination(unittest.TestCase):
         sort_by_field = "proteinChange"
         limit_val = 10
         page_size = 25
-
-        # Mock sorted and limited data
-        # Actual sorting happens API side, so mock just returns expected slice
-        mock_api_request.return_value = sorted(
-            self.mock_mutations, 
-            key=lambda m: m[sort_by_field],
-            reverse=True
-        )[:page_size] # API would return a page
-        
+    
+        # Setup mock for both calls
+        mock_api_request.side_effect = [
+            # First call returns a molecular profile with MUTATION_EXTENDED
+            [{"molecularProfileId": f"{gene_id}_mutation", "molecularAlterationType": "MUTATION_EXTENDED"}],
+            # Second call returns sorted mutations
+            sorted(
+                self.mock_mutations,
+                key=lambda m: m[sort_by_field],
+                reverse=True
+            )[:page_size]  # API would return a page
+        ]
+    
         result = self.server.get_mutations_in_gene(
-            gene_id=gene_id, 
-            study_id=study_id, 
-            sample_list_id=sample_list_id, 
-            page_number=0, 
-            page_size=page_size, 
-            sort_by=sort_by_field, 
+            gene_id=gene_id,
+            study_id=study_id,
+            sample_list_id=sample_list_id,
+            page_number=0,
+            page_size=page_size,
+            sort_by=sort_by_field,
             direction="DESC",
             limit=limit_val
         )
-
-        expected_endpoint = f"molecular-profiles/{gene_id}_mutation/mutations"
-        mock_api_request.assert_called_with(expected_endpoint, params={
-            "pageNumber": 0, 
-            "pageSize": page_size, 
-            "direction": "DESC",
-            "sortBy": sort_by_field,
-            "studyId": study_id,
-            "sampleListId": sample_list_id
-        })
-        self.assertEqual(len(result["mutations"]), limit_val) # Server-side limit application
+    
+        # Verify both calls
+        expected_calls = [
+            call(f"studies/{study_id}/molecular-profiles"),  # First call to get molecular profiles
+            call(f"molecular-profiles/{gene_id}_mutation/mutations", method="GET", params={
+                "pageNumber": 0,
+                "pageSize": page_size,
+                "direction": "DESC",
+                "sortBy": sort_by_field,
+                "studyId": study_id,
+                "sampleListId": sample_list_id,
+                "hugoGeneSymbol": gene_id
+            })  # Second call to get mutations with sort
+        ]
+        mock_api_request.assert_has_calls(expected_calls)
+        
+        # Verify limit works - should only be 10 results even though API returned more
+        self.assertEqual(len(result["mutations"]), limit_val)
+        self.assertEqual(result["pagination"]["total_found"], limit_val)
         self.assertTrue(all(isinstance(m, dict) for m in result["mutations"]))
 
     @patch('cbioportal_server.CBioPortalMCPServer._make_api_request')
@@ -341,79 +384,100 @@ class TestPagination(unittest.TestCase):
         """Test pagination for get_clinical_data method."""
         study_id = "study_clin"
         page_size = 20
-        attribute_ids_to_test = ["AGE_AT_DIAGNOSIS", "SEX"]
-
-        # First page
+    
+        # Setup mock for GET request (no attribute_ids)
         mock_api_request.return_value = self.mock_clinical_data[:page_size]
+        
+        # First page with no attribute_ids (uses GET)
         result = self.server.get_clinical_data(
-            study_id=study_id, 
-            attribute_ids=attribute_ids_to_test,
-            page_number=0, 
+            study_id=study_id,
+            page_number=0,
             page_size=page_size
         )
+        
+        # Verify correct endpoint and params for GET request
         expected_endpoint = f"studies/{study_id}/clinical-data"
-        mock_api_request.assert_called_with(expected_endpoint, params={
-            "pageNumber": 0, 
-            "pageSize": page_size, 
+        mock_api_request.assert_called_with(expected_endpoint, method="GET", params={
+            "pageNumber": 0,
+            "pageSize": page_size,
             "direction": "ASC",
-            "attributeIds": ",".join(attribute_ids_to_test)
+            "clinicalDataType": "PATIENT"
         })
-        self.assertEqual(len(result["clinical_data"]), page_size)
+        
+        # Verify response structure and pagination
+        self.assertEqual(len(result["clinical_data_by_patient"]), page_size)
         self.assertEqual(result["pagination"]["page"], 0)
         self.assertEqual(result["pagination"]["page_size"], page_size)
+        self.assertEqual(result["pagination"]["total_found"], page_size)
         self.assertTrue(result["pagination"]["has_more"])
 
-        # Second page (without attribute_ids for variation)
-        mock_api_request.return_value = self.mock_clinical_data[page_size : page_size * 2]
+        # Second page with no attribute_ids (uses GET)
+        mock_api_request.return_value = self.mock_clinical_data[page_size:page_size*2]
         result = self.server.get_clinical_data(
-            study_id=study_id, 
-            page_number=1, 
+            study_id=study_id,
+            page_number=1,
             page_size=page_size
         )
-        mock_api_request.assert_called_with(expected_endpoint, params={
-            "pageNumber": 1, 
-            "pageSize": page_size, 
-            "direction": "ASC"
-            # attributeIds is not passed here, as per call
+        
+        # Verify correct endpoint and params for second page GET request
+        mock_api_request.assert_called_with(expected_endpoint, method="GET", params={
+            "pageNumber": 1,
+            "pageSize": page_size,
+            "direction": "ASC",
+            "clinicalDataType": "PATIENT"
         })
-        self.assertEqual(len(result["clinical_data"]), page_size)
+        
+        # Verify pagination details for second page
         self.assertEqual(result["pagination"]["page"], 1)
 
     @patch('cbioportal_server.CBioPortalMCPServer._make_api_request')
     def test_get_clinical_data_with_sort_and_limit(self, mock_api_request):
         """Test sorting and limit for get_clinical_data."""
         study_id = "study_clin"
-        sort_by_field = "value" # Assuming sorting by 'value' of an attribute
-        limit_val = 15
-        page_size = 30
-
-        # Mock API returning a page of sorted data
-        # Actual sorting is API-side
+        sort_by_field = "patientId"
+        limit_val = 10
+        page_size = 25
+        attribute_ids = ["GENDER", "AGE"]
+    
+        # Mock sorted and limited data for attribute_ids - for the POST request
         mock_api_request.return_value = sorted(
-            self.mock_clinical_data, 
-            key=lambda cd: cd.get(sort_by_field, ""), # a bit simplistic for mixed types
-            reverse=False 
-        )[:page_size]
-
+            self.mock_clinical_data,
+            key=lambda c: c[sort_by_field],
+            reverse=True
+        )[:page_size] # API would return a page
+    
         result = self.server.get_clinical_data(
-            study_id=study_id, 
-            page_number=0, 
-            page_size=page_size, 
-            sort_by=sort_by_field, 
-            direction="ASC",
+            study_id=study_id,
+            attribute_ids=attribute_ids, 
+            page_number=0,
+            page_size=page_size,
+            sort_by=sort_by_field,
+            direction="DESC",
             limit=limit_val
         )
-
-        expected_endpoint = f"studies/{study_id}/clinical-data"
-        mock_api_request.assert_called_with(expected_endpoint, params={
-            "pageNumber": 0, 
-            "pageSize": page_size, 
-            "direction": "ASC",
-            "sortBy": sort_by_field
-            # attributeIds is not passed here
-        })
-        self.assertEqual(len(result["clinical_data"]), limit_val) # Server-side limit applied
-        self.assertTrue(all(isinstance(cd, dict) for cd in result["clinical_data"]))
+    
+        # When attribute_ids is provided, it uses a POST request with JSON data
+        expected_endpoint = f"studies/{study_id}/clinical-data/fetch"
+        expected_payload = {"attributeIds": attribute_ids, "clinicalDataType": "PATIENT"}
+        
+        mock_api_request.assert_called_with(
+            expected_endpoint, 
+            method="POST",
+            json_data=expected_payload,
+            params={
+                "pageNumber": 0,
+                "pageSize": page_size,
+                "direction": "DESC",
+                "sortBy": sort_by_field,
+                "clinicalDataType": "PATIENT"
+            }
+        )
+        
+        # Verify limit works
+        self.assertEqual(len(result["clinical_data_by_patient"]), limit_val)
+        self.assertEqual(result["pagination"]["total_found"], limit_val)
+        # Check that all values in clinical_data_by_patient are dictionaries
+        self.assertTrue(all(isinstance(patient_data, dict) for patient_data in result["clinical_data_by_patient"].values()))
 
 
 if __name__ == '__main__':
