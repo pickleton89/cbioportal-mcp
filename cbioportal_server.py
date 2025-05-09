@@ -333,21 +333,7 @@ def main():
 if __name__ == "__main__":
     main()
 
-# cBioPortal MCP Server
-# This server provides Model Context Protocol tools for accessing the cBioPortal API
-
-import argparse
-import json
-from typing import Dict, List, Optional, Any
-
-import requests
-
-# Import from the FastMCP module, which is the recommended high-level framework
-# Assumes FastMCP is installed and available in the environment
-from mcp.server.fastmcp import FastMCP
-
-
-class CBioPortalMCPServer:
+# End of file
     """
     An MCP server that interfaces with the cBioPortal API using FastMCP.
     """
@@ -806,19 +792,38 @@ class CBioPortalMCPServer:
 
     # --- UPDATED TOOL: get_mutations_in_gene ---
     def get_mutations_in_gene(
-        self, gene_id: str, study_id: str, sample_list_id: str
+        self, gene_id: str, study_id: str, sample_list_id: str,
+        page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None,
+        direction: str = "ASC", limit: Optional[int] = None
     ) -> Dict:
         """
-        Get mutations in a specific gene for a given study and sample list.
+        Get mutations in a specific gene for a given study and sample list, with pagination support.
         Uses the /molecular-profiles/{molecularProfileId}/mutations endpoint with GET and query parameters.
 
         Args:
             gene_id: Hugo gene symbol or Entrez gene ID (e.g., 'BRCA1' or '672').
             study_id: The ID of the cancer study (e.g., 'acc_tcga').
             sample_list_id: The ID of the sample list within the study (e.g., 'acc_tcga_all').
+            page_number: Page number (0-indexed) to retrieve
+            page_size: Number of mutations per page (default: 50)
+            sort_by: Field to sort by. Valid options: "entrezGeneId", "center", "mutationStatus",
+                    "validationStatus", "tumorAltCount", "tumorRefCount", "normalAltCount",
+                    "normalRefCount", "aminoAcidChange", "startPosition", "endPosition",
+                    "referenceAllele", "variantAllele", "proteinChange", "mutationType",
+                    "ncbiBuild", "variantType", "refseqMrnaId", "proteinPosStart",
+                    "proteinPosEnd", "keyword"
+            direction: Sort direction ("ASC" or "DESC")
+            limit: Maximum total results to return across all pages
+                    Set to None to use pagination, 0 for all results
 
         Returns:
-            A dictionary containing the count of mutations and a limited list of mutation details.
+            A dictionary containing:
+            - mutations: List of mutation objects
+            - pagination: Dictionary with pagination metadata
+              - page: Current page number
+              - page_size: Items per page
+              - total_found: Total number of mutations matching criteria (if available)
+              - has_more: Boolean indicating if more pages exist
         """
         try:
             # First, find the molecular profile ID for mutations in the study
@@ -868,12 +873,21 @@ class CBioPortalMCPServer:
             params = {
                 "studyId": study_id,
                 "sampleListId": sample_list_id,
+                "pageNumber": page_number,
+                "pageSize": page_size,
+                "direction": direction
             }
+            
+            # Special case for "all results" request
+            if limit == 0:
+                params["pageSize"] = 10000000  # API's maximum
+
+            # Add sort parameter if provided
+            if sort_by:
+                params["sortBy"] = sort_by
 
             # Add either entrezGeneId or hugoGeneSymbol based on the input gene_id
-            if str(
-                gene_id
-            ).isdigit():  # Ensure gene_id is treated as string for isdigit()
+            if str(gene_id).isdigit():  # Ensure gene_id is treated as string for isdigit()
                 params["entrezGeneId"] = gene_id
             else:
                 params["hugoGeneSymbol"] = gene_id
@@ -892,17 +906,25 @@ class CBioPortalMCPServer:
                     "found_mutation_profile_id": mutation_profile_id,  # Include the found profile ID
                 }
                 return error_response
-
-            # Limit the number of mutations to avoid overwhelming the context
-            # A note is added if the list is truncated.
-            if len(mutations) > 50:
-                return {
-                    "count": len(mutations),
-                    "mutations": mutations[:50],  # Return only the first 50 mutations
-                    "note": f"Showing only the first 50 mutations for {gene_id} in {study_id} ({sample_list_id}). The full result set is larger.",
+                
+            # Apply limit if specified (and not 0)
+            if limit and limit > 0 and len(mutations) > limit:
+                mutations = mutations[:limit]
+                
+            # Calculate total count and has_more flag
+            total_count = len(mutations)
+            has_more = total_count == page_size  # If we got a full page, there might be more
+            
+            # Return paginated results with metadata
+            return {
+                "mutations": mutations,
+                "pagination": {
+                    "page": page_number,
+                    "page_size": page_size,
+                    "total_found": total_count,
+                    "has_more": has_more
                 }
-            else:
-                return {"count": len(mutations), "mutations": mutations}
+            }
         except Exception as e:
             # Return an error dictionary if the process fails
             return {
@@ -912,21 +934,50 @@ class CBioPortalMCPServer:
     # --- END UPDATED TOOL ---
 
     def get_clinical_data(
-        self, study_id: str, attribute_ids: Optional[List[str]] = None
+        self, study_id: str, attribute_ids: Optional[List[str]] = None,
+        page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None,
+        direction: str = "ASC", limit: Optional[int] = None
     ) -> Dict:
         """
-        Get clinical data for patients in a study. Can fetch specific attributes or all.
+        Get clinical data for patients in a study with pagination support. Can fetch specific attributes or all.
 
         Args:
             study_id: The ID of the cancer study (e.g., 'acc_tcga').
             attribute_ids: Optional list of clinical attribute IDs (e.g., ['CANCER_TYPE', 'AGE']).
                            If None, all available clinical data attributes are returned.
+            page_number: Page number (0-indexed) to retrieve
+            page_size: Number of clinical data entries per page (default: 50)
+            sort_by: Field to sort by. Valid options: "clinicalAttributeId", "value"
+            direction: Sort direction ("ASC" or "DESC")
+            limit: Maximum total results to return across all pages
+                    Set to None to use pagination, 0 for all results
 
         Returns:
-            A dictionary containing the count of clinical data entries and the data,
-            grouped by patient ID.
+            A dictionary containing:
+            - clinical_data_by_patient: Dictionary of clinical data grouped by patient ID
+            - pagination: Dictionary with pagination metadata
+              - page: Current page number
+              - page_size: Items per page
+              - total_found: Total number of clinical data entries matching criteria
+              - has_more: Boolean indicating if more pages exist
         """
         try:
+            # Set up parameters for pagination
+            params = {
+                "pageNumber": page_number,
+                "pageSize": page_size,
+                "direction": direction,
+                "clinicalDataType": "PATIENT"  # Assuming PATIENT level data is requested
+            }
+            
+            # Special case for "all results" request
+            if limit == 0:
+                params["pageSize"] = 10000000  # API's maximum
+                
+            # Add sort parameter if provided
+            if sort_by:
+                params["sortBy"] = sort_by
+                
             clinical_data = []
             if attribute_ids:
                 # If specific attribute IDs are provided, use the fetch endpoint with POST
@@ -934,15 +985,19 @@ class CBioPortalMCPServer:
                 payload = {
                     "attributeIds": attribute_ids,
                     "clinicalDataType": "PATIENT",
-                }  # Assuming PATIENT level data is requested
+                }
                 clinical_data = self._make_api_request(
-                    endpoint, method="POST", json_data=payload
+                    endpoint, method="POST", json_data=payload, params=params
                 )
             else:
                 # If no specific attributes are requested, fetch all clinical data using GET
                 endpoint = f"studies/{study_id}/clinical-data"
-                clinical_data = self._make_api_request(endpoint, method="GET")
+                clinical_data = self._make_api_request(endpoint, method="GET", params=params)
 
+            # Apply limit if specified (and not 0)
+            if limit and limit > 0 and len(clinical_data) > limit:
+                clinical_data = clinical_data[:limit]
+                
             # Group the clinical data by patient ID for easier analysis
             by_patient = {}
             for item in clinical_data:
@@ -954,8 +1009,20 @@ class CBioPortalMCPServer:
                     by_patient[patient_id][item.get("clinicalAttributeId")] = item.get(
                         "value"
                     )
+            
+            # Calculate total count and has_more flag
+            total_count = len(clinical_data)
+            has_more = total_count == page_size  # If we got a full page, there might be more
 
-            return {"count": len(clinical_data), "clinical_data_by_patient": by_patient}
+            return {
+                "clinical_data_by_patient": by_patient,
+                "pagination": {
+                    "page": page_number,
+                    "page_size": page_size,
+                    "total_found": total_count,
+                    "has_more": has_more
+                }
+            }
         except Exception as e:
             # Return an error dictionary if the process fails
             return {"error": f"Failed to get clinical data for {study_id}: {str(e)}"}
@@ -1120,7 +1187,7 @@ class CBioPortalMCPServer:
             return {"error": f"Failed to search studies for '{keyword}': {str(e)}"}
 
     def run(self, transport: str = "stdio"):
-{{ ... }}
+        """
         Run the MCP server with the specified transport mechanism.
 
         Args:
