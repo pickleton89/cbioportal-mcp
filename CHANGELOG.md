@@ -6,6 +6,21 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ### 2025-05-09
 
+#### Testing Infrastructure
+
+- **Testing Framework Setup**:
+  - Added pytest configuration with pytest.ini
+  - Created comprehensive unit test structure with mocking
+  - Added test coverage reporting capability with pytest-cov
+  
+- **Test Files Implementation**:
+  - Created test_pagination.py with specific tests for pagination features
+  - Created test_cbioportal_server.py for basic functionality tests
+  - Added tests for error handling and configuration
+
+- **Dependency Updates**:
+  - Added pytest and pytest-cov to requirements.txt
+  
 #### Project Setup and Initial Implementation
 
 - **Repository Initialization**: Created a Git repository for version control and collaboration
