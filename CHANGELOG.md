@@ -6,6 +6,15 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ### 2025-05-09
 
+#### Implementation Fixes
+
+- **Pagination Implementation**:
+  - Fixed `get_cancer_studies` method to properly use pagination parameters
+  - Updated `search_genes` method to use correct endpoint with pagination
+  - Ensured consistent pagination structure across all methods
+  - Implemented special case handling for "all results" (limit=0) requests
+  - Added proper limit handling to truncate results when needed
+
 #### Testing Infrastructure
 
 - **Testing Framework Setup**:
