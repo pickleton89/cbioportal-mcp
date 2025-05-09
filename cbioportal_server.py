@@ -4,8 +4,7 @@
 
 import argparse
 import json
-import os
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 import requests
 
@@ -132,7 +131,7 @@ class CBioPortalMCPServer:
         except json.JSONDecodeError:
             # Handle cases where the response is not valid JSON but wasn't empty
             return {
-                "api_error": f"Failed to decode API response as JSON",
+                "api_error": "Failed to decode API response as JSON",
                 "response_text": response.text,
                 "requested_url": url,
                 "requested_method": method,
@@ -281,22 +280,19 @@ class CBioPortalMCPServer:
 
     def get_study_details(self, study_id: str) -> Dict:
         """
-        Get detailed information about a specific cancer study, including associated sample lists.
+        Get detailed information about a specific cancer study.
 
         Args:
             study_id: The ID of the cancer study (e.g., 'acc_tcga').
 
         Returns:
-            A dictionary containing the study details and its sample lists.
+            A dictionary containing the study details.
         """
         try:
             # Fetch study details
             study = self._make_api_request(f"studies/{study_id}")
 
-            # Fetch additional information about the study, such as sample lists
-            sample_lists = self._make_api_request(f"studies/{study_id}/sample-lists")
-
-            return {"study_details": study, "sample_lists": sample_lists}
+            return {"study": study}
         except Exception as e:
             # Return an error dictionary if the API call fails
             return {"error": f"Failed to get study details for {study_id}: {str(e)}"}
@@ -385,22 +381,22 @@ class CBioPortalMCPServer:
             A dictionary containing:
             - genes: List of gene objects with information for each requested gene
         """
-        results = {}
-
         try:
-            # Iterate through each gene ID and fetch its information
-            for gene_id in gene_ids:
-                try:
-                    # cBioPortal API allows fetching a gene by its ID directly
-                    gene_info = self._make_api_request(f"genes/{gene_id}")
-                    results[gene_id] = gene_info
-                except Exception:
-                    # If a specific gene lookup fails, record an error for that gene
-                    results[gene_id] = {
-                        "error": f"Gene '{gene_id}' not found or lookup failed"
-                    }
-
-            return {"genes": results}
+            # Use the batch endpoint to fetch multiple genes in a single request
+            # The endpoint takes a list of gene IDs in the request body
+            params = {
+                "geneIdType": gene_id_type,
+                "projection": projection
+            }
+            
+            gene_data = self._make_api_request(
+                "genes/fetch",
+                method="POST",
+                params=params,
+                json_data=gene_ids
+            )
+            
+            return {"genes": gene_data}
         except Exception as e:
             # Return a general error if the overall process fails
             return {"error": f"Failed to get gene information: {str(e)}"}

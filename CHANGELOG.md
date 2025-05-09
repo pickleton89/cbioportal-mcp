@@ -6,6 +6,13 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ### 2025-05-09
 
+#### Testing Results
+
+- **Test Execution**:
+  - Successfully passed 9 of 11 tests after implementing pagination
+  - Fixed remaining 2 tests by updating method implementations
+  - Addressed code linting issues for better quality and maintainability
+
 #### Implementation Fixes
 
 - **Pagination Implementation**:
@@ -14,6 +21,11 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Ensured consistent pagination structure across all methods
   - Implemented special case handling for "all results" (limit=0) requests
   - Added proper limit handling to truncate results when needed
+
+- **Method Implementation Updates**:
+  - Updated `get_genes` to use batch endpoint for better efficiency
+  - Simplified `get_study_details` to focus on core functionality
+  - Improved code quality by fixing lint issues
 
 #### Testing Infrastructure
 
