@@ -2,11 +2,12 @@
 # cBioPortal MCP Server
 # This server provides Model Context Protocol tools for accessing the cBioPortal API
 
-import os
-import json
-import requests
 import argparse
-from typing import Dict, List, Any, Optional
+import json
+import os
+from typing import Any, Dict, List, Optional
+
+import requests
 
 # Import from the FastMCP module, which is the recommended high-level framework
 # Assumes FastMCP is installed and available in the environment
