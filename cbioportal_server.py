@@ -149,12 +149,34 @@ class CBioPortalMCPServer:
                 "requested_json_data": json_data,
             }
 
-    def get_cancer_studies(self) -> Dict:
+    def get_cancer_studies(
+        self,
+        page_number: int = 0,
+        page_size: int = 50,
+        sort_by: Optional[str] = None,
+        direction: str = "ASC",
+        limit: Optional[int] = None
+    ) -> Dict:
         """
-        Get a list of all available cancer studies in cBioPortal.
-
+        Get a list of cancer studies in cBioPortal with pagination support.
+        
+        Args:
+            page_number: Page number (0-indexed) to retrieve
+            page_size: Number of studies per page (default: 50)
+            sort_by: Field to sort by. Valid options: "studyId", "name", "description",
+                    "publicStudy", "cancerTypeId", "status"
+            direction: Sort direction ("ASC" or "DESC")
+            limit: Maximum total results to return across all pages
+                    Set to None to use pagination, 0 for all results
+        
         Returns:
-            A dictionary containing the count of studies and a limited list of study details.
+            A dictionary containing:
+            - studies: List of study objects
+            - pagination: Dictionary with pagination metadata
+              - page: Current page number
+              - page_size: Items per page
+              - total_found: Total number of studies matching criteria (if available)
+              - has_more: Boolean indicating if more pages exist
         """
         try:
             # Fetch all studies
@@ -171,18 +193,67 @@ class CBioPortalMCPServer:
             # Return an error dictionary if the API call fails
             return {"error": f"Failed to get cancer studies: {str(e)}"}
 
-    def get_cancer_types(self) -> Dict:
+    def get_cancer_types(
+        self,
+        page_number: int = 0,
+        page_size: int = 50,
+        sort_by: Optional[str] = None,
+        direction: str = "ASC",
+        limit: Optional[int] = None
+    ) -> Dict:
         """
-        Get a list of all available cancer types in cBioPortal.
+        Get a list of all available cancer types in cBioPortal with pagination support.
 
+        Args:
+            page_number: Page number (0-indexed) to retrieve
+            page_size: Number of cancer types per page (default: 50)
+            sort_by: Field to sort by. Valid options: "cancerTypeId", "name", "dedicatedColor",
+                    "shortName", "parent"
+            direction: Sort direction ("ASC" or "DESC")
+            limit: Maximum total results to return across all pages
+                    Set to None to use pagination, 0 for all results
+            
         Returns:
-            A dictionary containing the count of cancer types and the list of types.
+            A dictionary containing:
+            - cancer_types: List of cancer type objects
+            - pagination: Dictionary with pagination metadata
+              - page: Current page number
+              - page_size: Items per page
+              - total_found: Total number of cancer types matching criteria (if available)
+              - has_more: Boolean indicating if more pages exist
         """
         try:
-            # Fetch all cancer types
-            cancer_types = self._make_api_request("cancer-types")
-
-            return {"count": len(cancer_types), "cancer_types": cancer_types}
+            # Special case for "all results" request
+            if limit == 0:
+                page_size = 10000000  # API's maximum
+                
+            params = {
+                "pageNumber": page_number,
+                "pageSize": page_size,
+                "direction": direction
+            }
+            
+            if sort_by:
+                params["sortBy"] = sort_by
+                
+            cancer_types = self._make_api_request("cancer-types", params=params)
+            
+            # Apply limit if specified
+            if limit and limit > 0 and len(cancer_types) > limit:
+                cancer_types = cancer_types[:limit]
+                
+            # Determine if more results are likely available
+            has_more = len(cancer_types) == page_size
+            
+            return {
+                "cancer_types": cancer_types,
+                "pagination": {
+                    "page": page_number,
+                    "page_size": page_size,
+                    "total_found": None,  # API doesn't provide this
+                    "has_more": has_more
+                }
+            }
         except Exception as e:
             # Return an error dictionary if the API call fails
             return {"error": f"Failed to get cancer types: {str(e)}"}
@@ -209,36 +280,89 @@ class CBioPortalMCPServer:
             # Return an error dictionary if the API call fails
             return {"error": f"Failed to get study details for {study_id}: {str(e)}"}
 
-    def get_samples_in_study(self, study_id: str) -> Dict:
+    def get_samples_in_study(
+        self, 
+        study_id: str,
+        page_number: int = 0,
+        page_size: int = 50,
+        sort_by: Optional[str] = None,
+        direction: str = "ASC",
+        limit: Optional[int] = None
+    ) -> Dict:
         """
-        Get a list of samples associated with a specific cancer study.
+        Get a list of samples associated with a specific cancer study with pagination support.
 
         Args:
             study_id: The ID of the cancer study (e.g., 'acc_tcga').
-
+            page_number: Page number (0-indexed) to retrieve
+            page_size: Number of samples per page (default: 50)
+            sort_by: Field to sort by. Valid options: "sampleId", "sampleType"
+            direction: Sort direction ("ASC" or "DESC")
+            limit: Maximum total results to return across all pages
+                    Set to None to use pagination, 0 for all results
+                    
         Returns:
-            A dictionary containing the count of samples and a list of sample details.
+            A dictionary containing:
+            - samples: List of sample objects
+            - pagination: Dictionary with pagination metadata
+              - page: Current page number
+              - page_size: Items per page
+              - total_found: Total number of samples matching criteria (if available)
+              - has_more: Boolean indicating if more pages exist
         """
         try:
-            # Fetch samples for the given study ID
-            samples = self._make_api_request(f"studies/{study_id}/samples")
-
-            # Limit the number of samples returned if necessary, similar to studies
-            # For simplicity here, returning all, but could add truncation.
-            return {"count": len(samples), "samples": samples}
+            # Special case for "all results" request
+            if limit == 0:
+                page_size = 10000000  # API's maximum
+                
+            params = {
+                "pageNumber": page_number,
+                "pageSize": page_size,
+                "direction": direction
+            }
+            
+            if sort_by:
+                params["sortBy"] = sort_by
+                
+            samples = self._make_api_request(f"studies/{study_id}/samples", params=params)
+            
+            # Apply limit if specified
+            if limit and limit > 0 and len(samples) > limit:
+                samples = samples[:limit]
+                
+            # Determine if more results are likely available
+            has_more = len(samples) == page_size
+            
+            return {
+                "samples": samples,
+                "pagination": {
+                    "page": page_number,
+                    "page_size": page_size,
+                    "total_found": None,  # API doesn't provide this
+                    "has_more": has_more
+                }
+            }
         except Exception as e:
             # Return an error dictionary if the API call fails
-            return {"error": f"Failed to get samples for study {study_id}: {str(e)}"}
+            return {"error": f"Failed to get samples for {study_id}: {str(e)}"}
 
-    def get_genes(self, gene_ids: List[str]) -> Dict:
+    def get_genes(
+        self, 
+        gene_ids: List[str],
+        gene_id_type: str = "ENTREZ_GENE_ID",
+        projection: str = "SUMMARY"
+    ) -> Dict:
         """
         Get information about specific genes by their Hugo symbol or Entrez ID.
 
         Args:
             gene_ids: List of Hugo gene symbols or Entrez gene IDs (e.g., ['BRCA1', 'TP53', '672']).
+            gene_id_type: Type of gene ID provided. Options: "ENTREZ_GENE_ID", "HUGO_GENE_SYMBOL"
+            projection: Level of detail in the response. Options: "ID", "SUMMARY", "DETAILED", "META"
 
         Returns:
-            A dictionary containing information for each requested gene.
+            A dictionary containing:
+            - genes: List of gene objects with information for each requested gene
         """
         results = {}
 
@@ -260,15 +384,36 @@ class CBioPortalMCPServer:
             # Return a general error if the overall process fails
             return {"error": f"Failed to get gene information: {str(e)}"}
 
-    def search_genes(self, keyword: str) -> Dict:
+    def search_genes(
+        self, 
+        keyword: str,
+        page_number: int = 0,
+        page_size: int = 50,
+        sort_by: Optional[str] = None,
+        direction: str = "ASC",
+        limit: Optional[int] = None
+    ) -> Dict:
         """
-        Search for genes by keyword in their symbol or name.
+        Search for genes by keyword in their symbol or name with pagination support.
 
         Args:
             keyword: Keyword to search for (e.g., 'BRCA', 'kinase').
+            page_number: Page number (0-indexed) to retrieve
+            page_size: Number of genes per page (default: 50)
+            sort_by: Field to sort by. Valid options: "entrezGeneId", "hugoGeneSymbol", "type", 
+                    "cytoband", "length"
+            direction: Sort direction ("ASC" or "DESC")
+            limit: Maximum total results to return across all pages
+                    Set to None to use pagination, 0 for all results
 
         Returns:
-            A dictionary containing the count of matching genes and a list of gene details.
+            A dictionary containing:
+            - genes: List of gene objects matching the keyword
+            - pagination: Dictionary with pagination metadata
+              - page: Current page number
+              - page_size: Items per page
+              - total_found: Total number of genes matching criteria (if available)
+              - has_more: Boolean indicating if more pages exist
         """
         try:
             # The cBioPortal API has a search endpoint for genes
@@ -464,7 +609,7 @@ class CBioPortalMCPServer:
     def search_studies(self, keyword: str) -> Dict:
         """
         Search for cancer studies by keyword in their name or description.
-
+{{ ... }}
         Args:
             keyword: Keyword to search for (e.g., 'melanoma', 'lung cancer').
 
