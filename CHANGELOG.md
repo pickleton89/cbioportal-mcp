@@ -20,6 +20,7 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 - **Dependency Updates**:
   - Added pytest and pytest-cov to requirements.txt
+  - Updated MCP library version constraint to use available versions (1.0.0-1.8.0)
   
 #### Project Setup and Initial Implementation
 
