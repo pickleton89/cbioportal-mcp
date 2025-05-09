@@ -377,9 +377,6 @@ class CBioPortalMCPServer:
             if limit and limit > 0 and len(clinical_data_from_api) > limit:
                 data_to_process = clinical_data_from_api[:limit]
             
-            # total_found in pagination now means number of items in this specific response payload (after potential server-side limit)
-            total_items_in_response = len(data_to_process)
-
             by_patient = {}
             for item in data_to_process:
                 patient_id = item.get("patientId")
@@ -387,13 +384,17 @@ class CBioPortalMCPServer:
                     if patient_id not in by_patient:
                         by_patient[patient_id] = {}
                     by_patient[patient_id][item.get("clinicalAttributeId")] = item.get("value")
-            
+        
+            # Update total_found to be the number of unique patients, not raw data items
+            # This makes the count consistent with the actual returned data structure
+            total_patients = len(by_patient)
+        
             return {
-                "clinical_data_by_patient": by_patient, # This now reflects the (potentially limited) data_to_process
+                "clinical_data_by_patient": by_patient, # This contains unique patients with their attributes
                 "pagination": {
                     "page": page_number,
                     "page_size": page_size,
-                    "total_found": total_items_in_response, 
+                    "total_found": total_patients,  # Now using patient count for consistency
                     "has_more": api_might_have_more
                 }
             }
