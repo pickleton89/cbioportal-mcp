@@ -6,6 +6,26 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ### 2025-05-09
 
+#### Pagination Completion
+
+- **Milestone**: Pagination support has been fully implemented and verified across all collection-returning API methods in the server.
+  - All relevant methods now accept `page_number`, `page_size`, `sort_by`, `direction`, and `limit` parameters.
+  - Each method returns a response with a `pagination` metadata dictionary for consistent client consumption.
+  - Special handling for `limit=0` (fetch all results) is in place where supported by the API.
+  - Methods covered:
+    - `get_cancer_studies`
+    - `get_cancer_types`
+    - `get_samples_in_study`
+    - `search_genes`
+    - `search_studies`
+    - `get_molecular_profiles`
+    - `get_mutations_in_gene`
+    - `get_clinical_data`
+
+- **Quality Improvements**:
+  - Audited all endpoints to ensure no collection-returning method is missing pagination support.
+  - Standardized error handling and response formatting for paginated endpoints.
+
 #### Testing Results
 
 - **Test Execution**:
