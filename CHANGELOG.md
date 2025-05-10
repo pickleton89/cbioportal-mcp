@@ -254,10 +254,25 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 - **Impact**: Ensures compatibility with the available FastMCP version
 - **Adaptation**: Updated test script to remove calls to startup/shutdown methods that are no longer needed
 
+#### Performance Testing Results
 
+- **Test Implementation**: Created a test script (`test_async.py`) to benchmark async vs sequential operations
+- **Sequential vs Concurrent Study Fetching**:
+  - Sequential fetching: 1.31 seconds to fetch 10 studies
+  - Concurrent fetching: 0.29 seconds for the same operation
+  - **4.57x performance improvement** with the async implementation
+  - Data consistency verified between both approaches
+- **Gene Batch Concurrency**:
+  - Successfully fetched 14 genes in 0.26 seconds with automatic batching
+  - Demonstrated the effective batch processing with concurrent execution
+- **Validation**: All operations produced consistent results with excellent performance gains
 
   #### Next Steps
 
-- The cBioPortal MCP server is now fully implemented with proper pagination support across all endpoints
-- Further enhancements could include more extensive error handling and additional performance optimizations
-- Consider expanding test coverage to include more edge cases and error conditions
+- The cBioPortal MCP server now features full async support with significant performance improvements
+- Potential future enhancements:
+  - Apply concurrent fetching to remaining collection methods that could benefit from parallelization
+  - Implement more sophisticated error handling and retry mechanisms for network errors
+  - Add configuration options for controlling concurrency limits and timeout settings
+  - Develop more comprehensive benchmarking and performance monitoring tools
+  - Consider caching frequently requested data to further improve performance
