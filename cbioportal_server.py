@@ -5,7 +5,7 @@ Provides Model Context Protocol tools for accessing the cBioPortal API with full
 """
 
 import argparse
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, AsyncGenerator
 
 import httpx
 import asyncio
@@ -38,9 +38,89 @@ class CBioPortalMCPServer:
         if self.client:
             await self.client.aclose()
             print("cBioPortal MCP Server async HTTP client closed")
+            
+    async def paginate_results(self, endpoint: str, params: Dict[str, Any] = None, method: str = "GET", json_data: Any = None, max_pages: int = None) -> AsyncGenerator[List[Dict[str, Any]], None]:
+        """
+        Asynchronous generator that yields pages of results from paginated API endpoints.
+        
+        Args:
+            endpoint: API endpoint path
+            params: Query parameters to include in the request
+            method: HTTP method (GET or POST)
+            json_data: JSON data for POST requests
+            max_pages: Maximum number of pages to retrieve (None for all available)
+            
+        Yields:
+            Lists of results, one page at a time
+        """
+        if params is None:
+            params = {}
+            
+        # Ensure we have pagination parameters
+        page = params.get("pageNumber", 0)
+        page_size = params.get("pageSize", 50)
+        
+        # Set pagination parameters in the request
+        request_params = params.copy()
+        
+        page_count = 0
+        has_more = True
+        
+        while has_more and (max_pages is None or page_count < max_pages):
+            # Update page number for current request
+            request_params["pageNumber"] = page
+            
+            # Make the API request
+            results = await self._make_api_request(
+                endpoint, 
+                method=method, 
+                params=request_params,
+                json_data=json_data
+            )
+            
+            # Check if we got any results
+            if not results or len(results) == 0:
+                break
+                
+            yield results
+            
+            # Check if we have more pages
+            has_more = len(results) >= page_size
+            
+            # Increment counters
+            page += 1
+            page_count += 1
+            
+    async def collect_all_results(self, endpoint: str, params: Dict[str, Any] = None, method: str = "GET", json_data: Any = None, max_pages: int = None, limit: int = None) -> List[Dict[str, Any]]:
+        """
+        Collect all results from a paginated endpoint into a single list.
+        
+        Args:
+            endpoint: API endpoint path
+            params: Query parameters to include in the request
+            method: HTTP method (GET or POST)
+            json_data: JSON data for POST requests
+            max_pages: Maximum number of pages to retrieve
+            limit: Maximum number of total results to return
+            
+        Returns:
+            List of all collected results (limited by max_pages and/or limit)
+        """
+        all_results = []
+        
+        async for page in self.paginate_results(endpoint, params, method, json_data, max_pages):
+            all_results.extend(page)
+            
+            # Stop if we've reached the specified limit
+            if limit and len(all_results) >= limit:
+                all_results = all_results[:limit]
+                break
+                
+        return all_results
 
 
     def _register_tools(self):
+        # FastMCP automatically detects async methods and handles them correctly
         self.mcp.tool()(self.get_cancer_studies)
         self.mcp.tool()(self.get_cancer_types)
         self.mcp.tool()(self.get_study_details)
@@ -48,6 +128,7 @@ class CBioPortalMCPServer:
         self.mcp.tool()(self.get_genes)
         self.mcp.tool()(self.search_genes)
         self.mcp.tool()(self.get_mutations_in_gene)
+        self.mcp.tool()(self.get_mutations_by_gene_and_study)
         self.mcp.tool()(self.get_clinical_data)
         self.mcp.tool()(self.get_molecular_profiles)
         self.mcp.tool()(self.search_studies)
@@ -77,38 +158,51 @@ class CBioPortalMCPServer:
     async def get_cancer_studies(self, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
         """
         Get a list of cancer studies in cBioPortal with pagination support.
+        
+        Args:
+            page_number: Page number to retrieve (0-based)
+            page_size: Number of items per page
+            sort_by: Field to sort by
+            direction: Sort direction (ASC or DESC)
+            limit: Maximum number of results to return (0 = all available)
+            
+        Returns:
+            Dictionary with studies and pagination metadata
         """
         try:
-            api_call_params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
+            # Configure API parameters
+            api_params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
             if sort_by:
-                api_call_params["sortBy"] = sort_by
-            if limit == 0: # Intent to fetch all, use a very large page size for API call
-                api_call_params["pageSize"] = 10000000
-            # If limit is non-zero, api_call_params["pageSize"] remains the original page_size for the API call.
+                api_params["sortBy"] = sort_by
+                
+            # Special behavior for limit=0 (fetch all results)
+            if limit == 0:
+                # Use the collect_all_results helper which handles pagination automatically
+                studies_from_api = await self.collect_all_results("studies", params=api_params)
+                studies_for_response = studies_from_api
+                has_more = False  # We fetched everything
+            else:
+                # Fetch just the requested page
+                studies_from_api = await self._make_api_request("studies", params=api_params)
+                
+                # Apply the limit if specified and smaller than the page results
+                studies_for_response = studies_from_api
+                if limit and 0 < limit < len(studies_from_api):
+                    studies_for_response = studies_from_api[:limit]
+                
+                # Determine if there might be more data available
+                has_more = len(studies_from_api) >= page_size
             
-            studies_from_api = await self._make_api_request("studies", params=api_call_params)
-
-            # Determine if the API might have more data
-            api_might_have_more = len(studies_from_api) == api_call_params["pageSize"]
-            # If 'fetch all' was intended and API returned less than max fetch size, then it's definitely the end.
-            if api_call_params["pageSize"] == 10000000 and len(studies_from_api) < 10000000:
-                api_might_have_more = False
-
-            # Apply server-side limit if specified (after fetching the page from API)
-            studies_for_response = studies_from_api
-            if limit and limit > 0 and len(studies_from_api) > limit:
-                studies_for_response = studies_from_api[:limit]
+            # Count the actual items we're returning
+            total_items = len(studies_for_response)
             
-            # total_found in pagination now means number of items in this specific response payload
-            total_items_in_response = len(studies_for_response)
-
             return {
                 "studies": studies_for_response,
                 "pagination": {
                     "page": page_number,
-                    "page_size": page_size, # Report original requested page_size to client
-                    "total_found": total_items_in_response, 
-                    "has_more": api_might_have_more
+                    "page_size": page_size,
+                    "total_found": total_items,
+                    "has_more": has_more
                 }
             }
         except Exception as e:
@@ -448,24 +542,38 @@ class CBioPortalMCPServer:
         except Exception as e:
             return {"error": "Failed to get gene information: " + str(e)}
 
-    def run(self, transport: str = "stdio"):
+    async def run(self, transport: str = "stdio"):
+        """Run the cBioPortal MCP server with the specified transport.
+        
+        The FastMCP run method automatically handles the async lifecycle for us,
+        including calling our startup and shutdown hooks.
+        """
         if transport.lower() == "stdio":
+            # FastMCP will properly handle our async lifecycle
             self.mcp.run()
         else:
             raise ValueError(f"Unsupported transport: {transport}. Currently only 'stdio' is supported.")
 
 def main():
-    parser = argparse.ArgumentParser(description="cBioPortal MCP Server")
+    """Entry point for the cBioPortal MCP server.
+    
+    Parses command line arguments and starts the server.
+    FastMCP handles the async event loop setup internally.
+    """
+    parser = argparse.ArgumentParser(description="cBioPortal MCP Server with Async Support")
     parser.add_argument("--base-url", type=str, default="https://www.cbioportal.org/api", help="Base URL for the cBioPortal API")
     parser.add_argument("--transport", type=str, default="stdio", choices=["stdio"], help="Transport mechanism for the MCP server (e.g., 'stdio')")
+    parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"], help="Logging level")
     args = parser.parse_args()
+    
+    # Create and run the server (FastMCP handles the async event loop)
     server = CBioPortalMCPServer(base_url=args.base_url)
     try:
         server.run(transport=args.transport)
     except KeyboardInterrupt:
         print("\nServer stopped by user.", flush=True)
     except Exception as e:
-        print("An error occurred during server execution: " + str(e), flush=True)
+        print(f"An error occurred during server execution: {str(e)}", flush=True)
 
 if __name__ == "__main__":
     main()

@@ -210,6 +210,13 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Added await keyword to API calls where needed
   - Maintained the same method signature and response structure for compatibility
 
+- **Step 4: Implement Pagination with Async Generators**:
+  - Created `paginate_results` async generator for efficient paging through API results
+  - Added `collect_all_results` helper to gather complete datasets when needed
+  - Enhanced `get_cancer_studies` to use new pagination infrastructure
+  - Made `run` method async to support full async lifecycle
+  - Updated main function with better documentation and enhanced CLI options
+
 
 
   #### Next Steps
