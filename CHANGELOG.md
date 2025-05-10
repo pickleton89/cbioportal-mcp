@@ -322,7 +322,10 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ### 2025-05-10 (10:23)
 
-#### Test Framework Modernization
+#### Test Code Refinement
+- Refactored `test_get_cancer_studies_pagination` in `tests/test_pagination.py` to use `pytest.mark.parametrize`. This consolidates multiple test scenarios into a single, data-driven test function, improving conciseness and maintainability.
+
+#### Test Suite Modernization
 
 - **Initiated `pytest` Migration**:
   - Added `pytest-asyncio` to project dependencies (`requirements.txt`) to support asynchronous testing with `pytest`.

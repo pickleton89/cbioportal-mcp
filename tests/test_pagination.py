@@ -173,57 +173,73 @@ def mock_molecular_profiles_data_all():
     ]
 
 
+# Define test cases for get_cancer_studies pagination
+cancer_studies_test_cases = [
+    pytest.param(
+        "first_page",         # scenario_name
+        0,                    # page_number
+        "mock_studies_data_page_1",  # mock_data_fixture_name
+        True,                 # expected_has_more
+        3,                    # page_size_to_use
+        id="first_page_full"
+    ),
+    pytest.param(
+        "second_page",
+        1,
+        "mock_studies_data_page_2",
+        True,
+        3,
+        id="second_page_full"
+    ),
+    pytest.param(
+        "last_page_partial",
+        2,
+        "mock_studies_data_last_page_less_than_pagesize",
+        False, # API returns less than page_size, so server says no more
+        3,
+        id="last_page_less_than_pagesize"
+    ),
+    pytest.param(
+        "last_page_full",
+        3,
+        "mock_studies_data_last_page_exact_pagesize",
+        True, # API returns exactly page_size, so server says more might exist
+        3,
+        id="last_page_exact_pagesize"
+    ),
+]
+
 @pytest.mark.asyncio
 @patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+@pytest.mark.parametrize(
+    "scenario_name, page_number, mock_data_fixture_name, expected_has_more, page_size_to_use",
+    cancer_studies_test_cases
+)
 async def test_get_cancer_studies_pagination(
-    mock_api_request,
+    mock_api_request, 
     cbioportal_server_instance,
-    mock_studies_data_page_1,
-    mock_studies_data_page_2,
-    mock_studies_data_last_page_less_than_pagesize,
-    mock_studies_data_last_page_exact_pagesize,
+    request, # Pytest request fixture to dynamically get other fixtures
+    scenario_name, 
+    page_number, 
+    mock_data_fixture_name, 
+    expected_has_more, 
+    page_size_to_use
 ):
     server = cbioportal_server_instance
-    page_size = 3  # Must match what's in the mock data page_size for has_more logic
+    
+    # Dynamically get the mock data fixture by its name
+    mock_data = request.getfixturevalue(mock_data_fixture_name)
+    mock_api_request.return_value = mock_data
+    
+    expected_items_count = len(mock_data)
 
-    # Test fetching the first page
-    mock_api_request.return_value = mock_studies_data_page_1
-    result = await server.get_cancer_studies(page_number=0, page_size=page_size)
-    assert len(result["studies"]) == page_size
-    assert result["pagination"]["page"] == 0
-    assert result["pagination"]["has_more"] is True
+    result = await server.get_cancer_studies(page_number=page_number, page_size=page_size_to_use)
+    
+    assert len(result["studies"]) == expected_items_count
+    assert result["pagination"]["page"] == page_number
+    assert result["pagination"]["has_more"] is expected_has_more
     mock_api_request.assert_called_with(
-        "studies", params={"pageNumber": 0, "pageSize": page_size, "direction": "ASC"}
-    )
-
-    # Test fetching the second page
-    mock_api_request.return_value = mock_studies_data_page_2
-    result = await server.get_cancer_studies(page_number=1, page_size=page_size)
-    assert len(result["studies"]) == page_size
-    assert result["pagination"]["page"] == 1
-    assert result["pagination"]["has_more"] is True
-    mock_api_request.assert_called_with(
-        "studies", params={"pageNumber": 1, "pageSize": page_size, "direction": "ASC"}
-    )
-
-    # Test fetching a page that has fewer items than page_size (last page)
-    mock_api_request.return_value = mock_studies_data_last_page_less_than_pagesize
-    result = await server.get_cancer_studies(page_number=2, page_size=page_size)
-    assert len(result["studies"]) == len(mock_studies_data_last_page_less_than_pagesize)
-    assert result["pagination"]["page"] == 2
-    assert result["pagination"]["has_more"] is False # Server returns false as API returned less than page_size
-    mock_api_request.assert_called_with(
-        "studies", params={"pageNumber": 2, "pageSize": page_size, "direction": "ASC"}
-    )
-
-    # Test fetching a page that has exactly page_size items (could be a last page or not)
-    mock_api_request.return_value = mock_studies_data_last_page_exact_pagesize
-    result = await server.get_cancer_studies(page_number=3, page_size=page_size)
-    assert len(result["studies"]) == page_size
-    assert result["pagination"]["page"] == 3
-    assert result["pagination"]["has_more"] is True # Server returns true as API returned full page_size
-    mock_api_request.assert_called_with(
-        "studies", params={"pageNumber": 3, "pageSize": page_size, "direction": "ASC"}
+        "studies", params={"pageNumber": page_number, "pageSize": page_size_to_use, "direction": "ASC"}
     )
 
 
