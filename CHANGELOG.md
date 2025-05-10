@@ -422,3 +422,31 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - `test_get_multiple_genes_empty_list`: Confirms correct behavior and metadata reporting when an empty list of gene IDs is provided.
 - Corrected a minor bug in `get_multiple_genes` where the `total_requested` metadata field was missing when an empty gene list was supplied.
 - Impact: Significantly improved test coverage for concurrent API fetching capabilities, ensuring robustness and reliability of these features. Provides greater confidence in the server's ability to handle multiple asynchronous requests efficiently and gracefully manage partial failures.
+
+### 2025-05-10 (13:10)
+
+#### Error Handling Test Suite Enhancements
+
+- **Modernized Error Handling Tests**:
+  - Replaced the previous `test_error_handling` function with a more robust and maintainable parameterized test function: `test_generic_api_error_handling` in `tests/test_cbioportal_server.py`.
+  - This new function systematically tests various API methods against different `httpx` exceptions (`HTTPStatusError` for 4xx/5xx errors and `RequestError` for network issues).
+- **Expanded Test Coverage for Error Handling**:
+  - Added specific error handling test cases for the following methods, verifying correct error message propagation:
+    - `get_study_details` (simulating 404 Not Found)
+    - `get_cancer_studies` (simulating Request Timeout)
+    - `get_molecular_profiles` (simulating 500 Internal Server Error)
+    - `get_genes` (simulating Network Error, also corrected method name from `get_gene` to `get_genes` and updated arguments/error prefix)
+    - `get_clinical_data` (simulating 403 Forbidden, and Network Error for fetching specific attributes)
+- **Refinement of Test Cases**:
+  - Removed a previously problematic test case for `get_mutations_in_molecular_profile_for_sample_ids` as no direct corresponding server method was identified.
+- **Impact**: Enhanced the reliability and comprehensiveness of the test suite by ensuring API methods correctly handle and report various error conditions. This improves confidence in the server's stability and provides clearer diagnostics when issues arise.
+
+#### Next Steps
+
+- The cBioPortal MCP server now features full async support with significant performance improvements
+- Potential future enhancements:
+  - Apply concurrent fetching to remaining collection methods that could benefit from parallelization
+  - Implement more sophisticated error handling and retry mechanisms for network errors
+  - Add configuration options for controlling concurrency limits and timeout settings
+  - Develop more comprehensive benchmarking and performance monitoring tools
+  - Consider caching frequently requested data to further improve performance
