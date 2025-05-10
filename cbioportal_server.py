@@ -281,7 +281,7 @@ class CBioPortalMCPServer:
         except Exception as e:
             return {"error": f"Failed to get cancer types: {str(e)}"}
 
-    def get_samples_in_study(self, study_id: str, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
+    async def get_samples_in_study(self, study_id: str, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
         """
         Get a list of samples associated with a specific cancer study with pagination support.
         """
@@ -292,7 +292,7 @@ class CBioPortalMCPServer:
             if limit == 0:
                 api_call_params["pageSize"] = 10000000
 
-            samples_from_api = self._make_api_request(f"studies/{study_id}/samples", params=api_call_params)
+            samples_from_api = await self._make_api_request(f"studies/{study_id}/samples", params=api_call_params)
             
             api_might_have_more = len(samples_from_api) == api_call_params["pageSize"]
             if api_call_params["pageSize"] == 10000000 and len(samples_from_api) < 10000000:
@@ -316,7 +316,7 @@ class CBioPortalMCPServer:
         except Exception as e:
             return {"error": f"Failed to get samples for study {study_id}: {str(e)}"}
 
-    def search_genes(self, keyword: str, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
+    async def search_genes(self, keyword: str, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
         """
         Search for genes by keyword in their symbol or name with pagination support.
         """
@@ -327,7 +327,7 @@ class CBioPortalMCPServer:
             if limit == 0:
                 api_call_params["pageSize"] = 10000000
 
-            genes_from_api = self._make_api_request("genes", params=api_call_params) # Corrected endpoint
+            genes_from_api = await self._make_api_request("genes", params=api_call_params) # Corrected endpoint
             
             # Determine if the API might have more data
             api_might_have_more = len(genes_from_api) == api_call_params["pageSize"]

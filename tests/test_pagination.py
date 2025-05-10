@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Tests for pagination functionality in the cBioPortal MCP Server
 import unittest
+import asyncio
 from unittest.mock import patch, call
 import sys
 import os
@@ -155,8 +156,8 @@ class TestPagination(unittest.TestCase):
         # Set up the mock
         mock_api_request.return_value = self.mock_cancer_types[:10]
         
-        # Call the method
-        result = self.server.get_cancer_types(page_number=0, page_size=10)
+        # Call the method and run it through the event loop
+        result = asyncio.run(self.server.get_cancer_types(page_number=0, page_size=10))
         
         # Verify API call
         mock_api_request.assert_called_with("cancer-types", params={
@@ -178,12 +179,12 @@ class TestPagination(unittest.TestCase):
         mock_api_request.return_value = self.mock_samples[:25]
         study_id = "study_1"
         
-        # Call the method
-        result = self.server.get_samples_in_study(
+        # Call the method and run it through the event loop
+        result = asyncio.run(self.server.get_samples_in_study(
             study_id=study_id,
             page_number=0, 
             page_size=25
-        )
+        ))
         
         # Verify API call
         mock_api_request.assert_called_with(f"studies/{study_id}/samples", params={
@@ -206,12 +207,12 @@ class TestPagination(unittest.TestCase):
         matching_genes = [g for g in self.mock_genes if keyword in g["hugoGeneSymbol"]]
         mock_api_request.return_value = matching_genes[:15]
         
-        # Call the method
-        result = self.server.search_genes(
+        # Call the method and run it through the event loop
+        result = asyncio.run(self.server.search_genes(
             keyword=keyword,
             page_number=0, 
             page_size=15
-        )
+        ))
         
         # Verify API call
         mock_api_request.assert_called_with("genes", params={
@@ -232,8 +233,8 @@ class TestPagination(unittest.TestCase):
         """Test the special case of getting all results."""
         mock_api_request.return_value = self.mock_studies
         
-        # Call with limit=0 (all results)
-        result = self.server.get_cancer_studies(limit=0)
+        # Call with limit=0 (all results) and run it through the event loop
+        result = asyncio.run(self.server.get_cancer_studies(limit=0))
         
         # Verify that max page size was used
         mock_api_request.assert_called_with("studies", params={
@@ -251,45 +252,45 @@ class TestPagination(unittest.TestCase):
         gene_id = "TP53"
         study_id = "study_mut"
         sample_list_id = "sample_list_1"
-        page_size = 20
-    
-        # Setup mock for both calls
         mock_api_request.side_effect = [
-            # First call returns a molecular profile with MUTATION_EXTENDED
-            [{"molecularProfileId": f"{gene_id}_mutation", "molecularAlterationType": "MUTATION_EXTENDED"}],
-            # Second call returns the mutations
-            self.mock_mutations[:page_size]
+            [{'molecularProfileId': 'TP53_mutation'}],  # First call result
+            self.mock_mutations[:25]                   # Second call result
         ]
         
-        result = self.server.get_mutations_in_gene(
+        # Call the method and run it through the event loop
+        result = asyncio.run(self.server.get_mutations_in_gene(
             gene_id=gene_id,
             study_id=study_id,
             sample_list_id=sample_list_id,
             page_number=0,
-            page_size=page_size
-        )
+            page_size=25
+        ))
         
-        # Verify that both calls were made with correct parameters
+        # Verify API calls - should make two calls
         expected_calls = [
-            call(f"studies/{study_id}/molecular-profiles"),  # First call to get molecular profiles
-            call(f"molecular-profiles/{gene_id}_mutation/mutations", method="GET", params={
-                "pageNumber": 0,
-                "pageSize": page_size,
-                "direction": "ASC",
-                "studyId": study_id,
-                "sampleListId": sample_list_id,
-                "hugoGeneSymbol": gene_id
-            })  # Second call to get mutations
+            call(f"studies/{study_id}/molecular-profiles"),
+            call(
+                f"molecular-profiles/TP53_mutation/mutations",
+                method="GET",
+                params={
+                    "pageNumber": 0,
+                    "pageSize": 25,
+                    "direction": "DESC",
+                    "sortBy": "proteinChange",
+                    "studyId": study_id,
+                    "sampleListId": sample_list_id,
+                    "hugoGeneSymbol": gene_id
+                }
+            )
         ]
         mock_api_request.assert_has_calls(expected_calls)
         
         # Verify response structure and pagination
-        self.assertEqual(len(result["mutations"]), page_size)
+        self.assertEqual(len(result["mutations"]), 25)
         self.assertEqual(result["pagination"]["page"], 0)
-        self.assertEqual(result["pagination"]["page_size"], page_size)
-        self.assertEqual(result["pagination"]["total_found"], page_size)
-        
-        # Since we return exactly page_size items, has_more should be True
+        self.assertEqual(result["pagination"]["page_size"], 25)
+        self.assertEqual(result["pagination"]["total_found"], 25)
+        self.assertEqual(result["mutations"][0]["gene"]["hugoGeneSymbol"], gene_id)
         self.assertTrue(result["pagination"]["has_more"])
         
         # Test second page to ensure pagination is working
