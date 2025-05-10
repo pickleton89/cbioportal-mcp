@@ -37,6 +37,8 @@ A high-performance async Model Context Protocol (MCP) server that enables AI ass
 
 ### Set Up Environment
 
+#### Option 1: Using venv and pip (standard method)
+
 ```bash
 # Create a virtual environment
 python -m venv cbioportal-mcp-env
@@ -48,7 +50,7 @@ cbioportal-mcp-env\Scripts\activate
 source cbioportal-mcp-env/bin/activate
 ```
 
-### Install Dependencies
+##### Install Dependencies with pip
 
 ```bash
 # Install the MCP SDK and FastMCP framework
@@ -56,6 +58,36 @@ pip install mcp>=2.0.0
 
 # Install additional dependencies
 pip install httpx asyncio
+```
+
+#### Option 2: Using UV (faster alternative)
+
+[UV](https://github.com/astral-sh/uv) is a modern, high-performance Python package manager and environment manager that's significantly faster than pip.
+
+```bash
+# Install UV if you don't have it yet
+pipx install uv
+# Or with Homebrew
+# brew install uv
+
+# Create and activate a virtual environment with UV
+uv venv
+
+# Activate the environment
+# On Windows:
+.venv\Scripts\activate
+# On macOS/Linux:
+source .venv/bin/activate
+```
+
+##### Install Dependencies with UV
+
+```bash
+# Install the MCP SDK and FastMCP framework
+uv pip install mcp>=2.0.0
+
+# Install additional dependencies
+uv pip install httpx asyncio
 ```
 
 ### Download the Server
