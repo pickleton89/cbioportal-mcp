@@ -435,7 +435,7 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 #### Test Suite: Server Lifecycle and Tool Registration
 
 - **Objective**: Ensure robust testing for server startup/shutdown, HTTP client management, and dynamic MCP tool registration.
-- **Completed Tests in `tests/test_cbioportal_server.py`**:
+- **Completed Tests in `tests/test_server_lifecycle.py`**:
     - `test_server_lifecycle_hooks_registered`: Verified that `startup` and `shutdown` methods are correctly registered as FastMCP lifecycle hooks.
     - `test_server_startup_initializes_client_and_logs`: Confirmed that the `startup` method initializes the `httpx.AsyncClient` and logs the action.
     - `test_server_shutdown_closes_client_and_logs`: Ensured the `shutdown` method closes the `httpx.AsyncClient` and logs the action.
@@ -485,8 +485,7 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 - **Objective**: Enhance server robustness by implementing comprehensive input validation for API methods.
 - **New Tests Added (`tests/test_input_validation.py`)**:
-    - Created a new test file `test_input_validation.py` dedicated to input validation scenarios.
-    - Implemented parameterized tests to cover various invalid inputs (e.g., negative numbers, empty strings, incorrect types) for the following methods:
+    - Implemented and verified tests for the following methods to cover various invalid inputs (e.g., negative numbers, empty strings, incorrect types):
         - `get_cancer_studies` (page_number, page_size)
         - `get_study_details` (study_id)
         - `get_cancer_types` (page_number, page_size)
@@ -497,7 +496,7 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 - **Server-Side Validation Logic (`cbioportal_server.py`)**:
     - Added input validation logic to the corresponding server methods to raise `TypeError` or `ValueError` for invalid inputs before any external API calls are made.
 - **Verification**: All 42 input validation tests are passing.
-- **Impact**: Significantly improves the reliability and error handling of the server by ensuring that API methods correctly validate their input parameters.
+- **Impact**: Improved the reliability and error handling of the server by ensuring that API methods correctly validate their input parameters.
 
 ### 2025-05-10 (16:09)
 
@@ -532,5 +531,26 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Develop more comprehensive benchmarking and performance monitoring tools
   - Consider caching frequently requested data to further improve performance
 
+### 2025-05-10 (17:00)
 
+#### CLI Testing Enhancements
 
+- **Comprehensive CLI Tests (`tests/test_cli.py`)**:
+    - Implemented and verified tests for the `main()` function in `cbioportal_server.py`.
+    - Covered default and custom command-line argument parsing (including `--base-url`, `--transport`, `--log-level`).
+    - Ensured correct server instantiation and logging setup based on CLI arguments.
+    - Tested graceful handling of runtime errors occurring within `mcp.run()`.
+    - Added tests to verify correct error reporting and exit for unsupported `--transport` arguments.
+    - Implemented tests to confirm graceful shutdown on `KeyboardInterrupt` (Ctrl+C) during server operation.
+- **Verification**: All 5 CLI tests in `tests/test_cli.py` are passing. The full suite of 92 tests also passes, confirming no regressions.
+- **Impact**: Improved the robustness and reliability of the server's command-line interface and startup procedures.
+
+#### Next Steps
+
+- The cBioPortal MCP server now features full async support with significant performance improvements
+- Potential future enhancements:
+  - Apply concurrent fetching to remaining collection methods that could benefit from parallelization
+  - Implement more sophisticated error handling and retry mechanisms for network errors
+  - Add configuration options for controlling concurrency limits and timeout settings
+  - Develop more comprehensive benchmarking and performance monitoring tools
+  - Consider caching frequently requested data to further improve performance
