@@ -707,7 +707,7 @@ class CBioPortalMCPServer:
         except Exception as e:
             return {"error": f"Failed to get gene information: {str(e)}"}
 
-    async def run(self, transport: str = "stdio", log_level: str = "INFO"):
+    def run(self, transport: str = "stdio", log_level: str = "INFO"):
         """Run the cBioPortal MCP server with the specified transport.
         
         The FastMCP run method automatically handles the async lifecycle for us,
@@ -733,7 +733,7 @@ class CBioPortalMCPServer:
         
         if transport.lower() == "stdio":
             # FastMCP will properly handle our async lifecycle
-            self.mcp.run()
+            self.mcp.run(on_startup=self.startup, on_shutdown=self.shutdown)
         else:
             raise ValueError(f"Unsupported transport: {transport}. Currently only 'stdio' is supported.")
 
@@ -778,18 +778,8 @@ def main():
     # Create and run the server (FastMCP handles the async event loop)
     server = CBioPortalMCPServer(base_url=args.base_url)
     try:
-        import asyncio
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-
-        if loop and loop.is_running():
-            # If there's already a running event loop (e.g., in Claude Desktop), schedule the server coroutine and return immediately
-            loop.create_task(server.run(transport=args.transport, log_level=args.log_level))
-            return
-        else:
-            asyncio.run(server.run(transport=args.transport, log_level=args.log_level))
+        # Let FastMCP handle the event loop internally
+        server.run(transport=args.transport, log_level=args.log_level)
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
     except Exception as e:
