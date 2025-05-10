@@ -406,3 +406,19 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Add configuration options for controlling concurrency limits and timeout settings
   - Develop more comprehensive benchmarking and performance monitoring tools
   - Consider caching frequently requested data to further improve performance
+
+### 2025-05-10 (11:30)
+
+#### Test Suite Enhancements for Concurrent Fetching
+
+- Added comprehensive tests for the `get_multiple_studies` method in `tests/test_cbioportal_server.py`:
+  - `test_get_multiple_studies_success`: Verifies successful concurrent fetching of multiple studies.
+  - `test_get_multiple_studies_partial_failure`: Ensures correct handling when some study API calls fail while others succeed.
+  - `test_get_multiple_studies_empty_list`: Confirms correct behavior when an empty list of study IDs is provided.
+- Added comprehensive tests for the `get_multiple_genes` method in `tests/test_cbioportal_server.py`:
+  - `test_get_multiple_genes_single_batch_success`: Verifies successful concurrent fetching for a small number of genes (single batch).
+  - `test_get_multiple_genes_multiple_batches_success`: Validates correct batching logic and concurrent fetching for a larger number of genes requiring multiple API batches.
+  - `test_get_multiple_genes_partial_batch_failure`: Ensures proper error reporting and data handling when some gene batches fail to fetch.
+  - `test_get_multiple_genes_empty_list`: Confirms correct behavior and metadata reporting when an empty list of gene IDs is provided.
+- Corrected a minor bug in `get_multiple_genes` where the `total_requested` metadata field was missing when an empty gene list was supplied.
+- Impact: Significantly improved test coverage for concurrent API fetching capabilities, ensuring robustness and reliability of these features. Provides greater confidence in the server's ability to handle multiple asynchronous requests efficiently and gracefully manage partial failures.

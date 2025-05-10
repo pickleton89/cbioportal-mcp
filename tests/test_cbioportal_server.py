@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Tests for basic functionality of the cBioPortal MCP Server
 
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, call
 import sys
 import os
 import pytest
@@ -38,6 +38,31 @@ def cbioportal_server_instance():
     """Fixture for CBioPortalMCPServer instance with default URL."""
     return CBioPortalMCPServer(base_url="https://www.cbioportal.org/api")
 
+# New Fixtures for get_multiple_studies
+@pytest.fixture
+def mock_study_detail_brca():
+    return {"studyId": "brca_tcga", "name": "BRCA TCGA", "description": "Breast Cancer TCGA"}
+
+@pytest.fixture
+def mock_study_detail_luad():
+    return {"studyId": "luad_tcga", "name": "LUAD TCGA", "description": "Lung Adenocarcinoma TCGA"}
+
+# New Fixtures for get_multiple_genes
+@pytest.fixture
+def mock_gene_detail_tp53():
+    return {"entrezGeneId": 7157, "hugoGeneSymbol": "TP53", "type": "protein-coding"}
+
+@pytest.fixture
+def mock_gene_detail_brca1():
+    return {"entrezGeneId": 672, "hugoGeneSymbol": "BRCA1", "type": "protein-coding"}
+
+@pytest.fixture
+def mock_gene_batch_response_page1(): 
+    return [
+        {"entrezGeneId": 7157, "hugoGeneSymbol": "TP53", "type": "protein-coding"},
+        {"entrezGeneId": 672, "hugoGeneSymbol": "BRCA1", "type": "protein-coding"}
+    ]
+
 # Test Functions
 
 @patch('cbioportal_server.CBioPortalMCPServer._make_api_request')
@@ -49,7 +74,7 @@ async def test_get_study_details(mock_api_request, cbioportal_server_instance, m
     
     result = await cbioportal_server_instance.get_study_details(study_id)
     
-    mock_api_request.assert_called_once_with(f"studies/{study_id}")
+    mock_api_request.assert_called_once_with("studies/" + study_id)
     assert result["study"] == mock_study_data
 
 @patch('cbioportal_server.CBioPortalMCPServer._make_api_request')
@@ -196,3 +221,293 @@ async def test_tool_registration(cbioportal_server_instance):
     assert len(registered_tool_names) == len(expected_tools), \
         f"Mismatch in tool count. Expected {len(expected_tools)}, got {len(registered_tool_names)}. \
         Registered: {registered_tool_names}. Expected: {expected_tools}"
+
+# --- Tests for get_multiple_studies ---
+@pytest.mark.asyncio
+@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+async def test_get_multiple_studies_success(
+    mock_make_api_request,
+    cbioportal_server_instance,
+    mock_study_detail_brca,
+    mock_study_detail_luad
+):
+    server = cbioportal_server_instance
+    study_ids_to_fetch = ["brca_tcga", "luad_tcga"]
+
+    # Configure mock_make_api_request to return different details for different study IDs
+    async def side_effect_func(url, *args, **kwargs):
+        if "studies/brca_tcga" in url:
+            return mock_study_detail_brca
+        elif "studies/luad_tcga" in url:
+            return mock_study_detail_luad
+        raise ValueError(f"Unexpected URL for _make_api_request: {url}")
+
+    mock_make_api_request.side_effect = side_effect_func
+
+    result = await server.get_multiple_studies(study_ids=study_ids_to_fetch)
+
+    assert len(result["studies"]) == 2
+    assert result["studies"]["brca_tcga"] == mock_study_detail_brca
+    assert result["studies"]["luad_tcga"] == mock_study_detail_luad
+    assert result["metadata"]["count"] == 2
+    assert result["metadata"]["errors"] == 0
+    assert result["metadata"]["concurrent"] is True
+
+    # Check that _make_api_request was called for each study
+    expected_calls = [
+        call("studies/brca_tcga"),
+        call("studies/luad_tcga"),
+    ]
+    # Note: The order of calls from asyncio.gather is not guaranteed.
+    # So we check that all expected calls were made, regardless of order.
+    mock_make_api_request.assert_has_calls(expected_calls, any_order=True)
+    assert mock_make_api_request.call_count == 2
+
+@pytest.mark.asyncio
+@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+async def test_get_multiple_studies_partial_failure(
+    mock_make_api_request,
+    cbioportal_server_instance,
+    mock_study_detail_brca
+):
+    server = cbioportal_server_instance
+    study_ids_to_fetch = ["brca_tcga", "failed_study", "another_failed_study"]
+
+    # Configure mock_make_api_request
+    async def side_effect_func(url, *args, **kwargs):
+        if "studies/brca_tcga" in url:
+            return mock_study_detail_brca # Success
+        elif "studies/failed_study" in url:
+            raise Exception("Simulated API error for failed_study") # Failure 1
+        elif "studies/another_failed_study" in url:
+            # Simulate another way an error might be caught by the inner try-except
+            # For example, if _make_api_request itself returned an error structure recognized by fetch_study
+            # However, the current fetch_study catches generic Exception from _make_api_request call
+            raise ValueError("Simulated internal error for another_failed_study") # Failure 2
+        raise ValueError(f"Unexpected URL for _make_api_request: {url}")
+
+    mock_make_api_request.side_effect = side_effect_func
+
+    result = await server.get_multiple_studies(study_ids=study_ids_to_fetch)
+
+    assert len(result["studies"]) == 3
+    assert result["studies"]["brca_tcga"] == mock_study_detail_brca
+    assert "error" in result["studies"]["failed_study"]
+    assert result["studies"]["failed_study"]["error"] == "Simulated API error for failed_study"
+    assert "error" in result["studies"]["another_failed_study"]
+    assert result["studies"]["another_failed_study"]["error"] == "Simulated internal error for another_failed_study"
+
+    assert result["metadata"]["count"] == 3
+    assert result["metadata"]["errors"] == 2 # Two errors expected
+    assert result["metadata"]["concurrent"] is True
+
+    expected_calls = [
+        call("studies/brca_tcga"),
+        call("studies/failed_study"),
+        call("studies/another_failed_study"),
+    ]
+    mock_make_api_request.assert_has_calls(expected_calls, any_order=True)
+    assert mock_make_api_request.call_count == 3
+
+@pytest.mark.asyncio
+@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+async def test_get_multiple_studies_empty_list(
+    mock_make_api_request,
+    cbioportal_server_instance
+):
+    server = cbioportal_server_instance
+    study_ids_to_fetch = []
+
+    result = await server.get_multiple_studies(study_ids=study_ids_to_fetch)
+
+    assert len(result["studies"]) == 0
+    assert result["metadata"]["count"] == 0
+    assert result["metadata"]["errors"] == 0
+    # 'concurrent' might not be meaningful here, but the method sets it based on its nature
+    # assert result["metadata"]["concurrent"] is True # Or check if it's absent/False for empty
+
+    mock_make_api_request.assert_not_called()
+
+# --- Tests for get_multiple_genes ---
+@pytest.mark.asyncio
+@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+async def test_get_multiple_genes_single_batch_success(
+    mock_make_api_request,
+    cbioportal_server_instance,
+    mock_gene_batch_response_page1, 
+    mock_gene_detail_tp53, 
+    mock_gene_detail_brca1
+):
+    server = cbioportal_server_instance
+    gene_ids_to_fetch = ["7157", "672"] # Entrez IDs
+
+    # Configure mock_make_api_request to return the batch response
+    # The actual server method calls genes/fetch via POST with a list of IDs
+    mock_make_api_request.return_value = mock_gene_batch_response_page1
+
+    result = await server.get_multiple_genes(gene_ids=gene_ids_to_fetch, gene_id_type="ENTREZ_GENE_ID")
+
+    assert len(result["genes"]) == 2
+    # The server method keys the results by stringified gene ID
+    assert result["genes"]["7157"] == mock_gene_detail_tp53
+    assert result["genes"]["672"] == mock_gene_detail_brca1
+    assert result["metadata"]["count"] == 2
+    assert result["metadata"]["total_requested"] == 2
+    assert result["metadata"]["errors"] == 0
+    assert result["metadata"]["concurrent"] is True
+    assert result["metadata"]["batches"] == 1 # Single batch for this small list
+
+    # Check that _make_api_request was called correctly for the batch
+    mock_make_api_request.assert_called_once_with(
+        "genes/fetch",
+        method="POST",
+        params={"geneIdType": "ENTREZ_GENE_ID", "projection": "SUMMARY"},
+        json_data=gene_ids_to_fetch # The server method sends the list of IDs as JSON data
+    )
+
+@pytest.mark.asyncio
+@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+async def test_get_multiple_genes_multiple_batches_success(
+    mock_make_api_request,
+    cbioportal_server_instance,
+    mock_gene_detail_tp53, 
+    mock_gene_detail_brca1
+):
+    server = cbioportal_server_instance
+    # Create a list of 150 unique gene IDs (strings)
+    # Default batch_size in get_multiple_genes is 100, so this should create 2 batches.
+    gene_ids_to_fetch = [str(i) for i in range(1, 151)] 
+
+    # Simulate API responses for two batches
+    # Batch 1: IDs 1-100
+    mock_batch_1_response = [
+        {"entrezGeneId": i, "hugoGeneSymbol": f"GENE{i}", "type": "protein-coding"} 
+        for i in range(1, 101)
+    ]
+    # Batch 2: IDs 101-150
+    mock_batch_2_response = [
+        {"entrezGeneId": i, "hugoGeneSymbol": f"GENE{i}", "type": "protein-coding"} 
+        for i in range(101, 151)
+    ]
+
+    # Configure mock_make_api_request side_effect for multiple calls
+    async def side_effect_func(url, method, params, json_data):
+        if method == "POST" and url == "genes/fetch":
+            if json_data == gene_ids_to_fetch[0:100]: # First batch
+                return mock_batch_1_response
+            elif json_data == gene_ids_to_fetch[100:150]: # Second batch
+                return mock_batch_2_response
+        raise ValueError(f"Unexpected API call: {url}, {method}, {params}, {json_data}")
+
+    mock_make_api_request.side_effect = side_effect_func
+
+    result = await server.get_multiple_genes(gene_ids=gene_ids_to_fetch, gene_id_type="ENTREZ_GENE_ID")
+
+    assert len(result["genes"]) == 150
+    # Check a couple of genes from different batches
+    assert result["genes"]["1"]["hugoGeneSymbol"] == "GENE1"
+    assert result["genes"]["150"]["hugoGeneSymbol"] == "GENE150"
+
+    assert result["metadata"]["count"] == 150
+    assert result["metadata"]["total_requested"] == 150
+    assert result["metadata"]["errors"] == 0
+    assert result["metadata"]["concurrent"] is True
+    assert result["metadata"]["batches"] == 2 # Expect two batches
+
+    # Check that _make_api_request was called for each batch
+    expected_api_calls = [
+        call(
+            "genes/fetch",
+            method="POST",
+            params={"geneIdType": "ENTREZ_GENE_ID", "projection": "SUMMARY"},
+            json_data=gene_ids_to_fetch[0:100]
+        ),
+        call(
+            "genes/fetch",
+            method="POST",
+            params={"geneIdType": "ENTREZ_GENE_ID", "projection": "SUMMARY"},
+            json_data=gene_ids_to_fetch[100:150]
+        ),
+    ]
+    mock_make_api_request.assert_has_calls(expected_api_calls, any_order=True)
+    assert mock_make_api_request.call_count == 2
+
+@pytest.mark.asyncio
+@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+async def test_get_multiple_genes_partial_batch_failure(
+    mock_make_api_request,
+    cbioportal_server_instance
+):
+    server = cbioportal_server_instance
+    # Using 150 IDs to ensure 2 batches (default batch size 100)
+    gene_ids_to_fetch = [str(i) for i in range(1, 151)]
+
+    # Simulate API response for the first batch (successful)
+    mock_batch_1_response = [
+        {"entrezGeneId": i, "hugoGeneSymbol": f"GENE{i}", "type": "protein-coding"} 
+        for i in range(1, 101)
+    ]
+
+    # Configure mock_make_api_request: first call succeeds, second call fails
+    async def side_effect_func(url, method, params, json_data):
+        if json_data == gene_ids_to_fetch[0:100]: # First batch
+            return mock_batch_1_response
+        elif json_data == gene_ids_to_fetch[100:150]: # Second batch
+            raise Exception("Simulated API error for second batch")
+        raise ValueError("Unexpected API call during partial failure test")
+
+    mock_make_api_request.side_effect = side_effect_func
+
+    result = await server.get_multiple_genes(gene_ids=gene_ids_to_fetch, gene_id_type="ENTREZ_GENE_ID")
+
+    # Only genes from the first successful batch should be present
+    assert len(result["genes"]) == 100 
+    assert result["genes"]["1"]["hugoGeneSymbol"] == "GENE1"
+    assert result["genes"]["100"]["hugoGeneSymbol"] == "GENE100"
+    assert "101" not in result["genes"] # Gene from failed batch should not be there
+
+    assert result["metadata"]["count"] == 100 # Count of successfully fetched genes
+    assert result["metadata"]["total_requested"] == 150
+    assert result["metadata"]["errors"] == 1 # One batch failed
+    assert result["metadata"]["concurrent"] is True
+    assert result["metadata"]["batches"] == 2
+
+    # Check API calls
+    expected_api_calls = [
+        call(
+            "genes/fetch",
+            method="POST",
+            params={"geneIdType": "ENTREZ_GENE_ID", "projection": "SUMMARY"},
+            json_data=gene_ids_to_fetch[0:100]
+        ),
+        call(
+            "genes/fetch",
+            method="POST",
+            params={"geneIdType": "ENTREZ_GENE_ID", "projection": "SUMMARY"},
+            json_data=gene_ids_to_fetch[100:150]
+        ),
+    ]
+    mock_make_api_request.assert_has_calls(expected_api_calls, any_order=True)
+    assert mock_make_api_request.call_count == 2
+
+@pytest.mark.asyncio
+@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+async def test_get_multiple_genes_empty_list(
+    mock_make_api_request,
+    cbioportal_server_instance
+):
+    server = cbioportal_server_instance
+    gene_ids_to_fetch = []
+
+    result = await server.get_multiple_genes(gene_ids=gene_ids_to_fetch, gene_id_type="ENTREZ_GENE_ID")
+
+    assert len(result["genes"]) == 0
+    assert result["metadata"]["count"] == 0
+    assert result["metadata"]["total_requested"] == 0
+    assert result["metadata"]["errors"] == 0
+    assert result["metadata"]["concurrent"] is True # Method is inherently concurrent
+    assert result["metadata"]["batches"] == 0
+
+    mock_make_api_request.assert_not_called()
+
+# More tests for get_multiple_genes will go here

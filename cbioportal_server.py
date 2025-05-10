@@ -853,8 +853,20 @@ class CBioPortalMCPServer:
         Returns:
             Dictionary with gene information and performance metadata
         """
+        import time
+        start_time = time.time()
         if not gene_ids:
-            return {"genes": {}, "metadata": {"count": 0, "errors": 0}}
+            return {
+                "genes": {},
+                "metadata": {
+                    "count": 0,
+                    "total_requested": 0,
+                    "errors": 0,
+                    "concurrent": True,
+                    "batches": 0,
+                    "execution_time": time.time() - start_time,
+                },
+            }
 
         # For large gene lists, break into smaller batches for API compatibility
         batch_size = (
@@ -876,9 +888,9 @@ class CBioPortalMCPServer:
 
         # Create tasks for all batches and run them concurrently
         tasks = [fetch_gene_batch(batch) for batch in gene_batches]
-        start_time = asyncio.get_event_loop().time()
+        start_time = time.time()
         batch_results = await asyncio.gather(*tasks)
-        end_time = asyncio.get_event_loop().time()
+        end_time = time.time()
 
         # Process results
         all_genes = []
