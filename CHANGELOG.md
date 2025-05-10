@@ -320,6 +320,20 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Ensured the call to `self._make_api_request(...)` within `get_molecular_profiles` is properly `await`ed.
 - **Impact**: These changes resolve runtime errors when these functions are called, allowing them to correctly interact with the asynchronous `_make_api_request` method. This enhances the stability and reliability of the MCP server when performing these operations.
 
+### 2025-05-10 (10:23)
+
+#### Test Framework Modernization
+
+- **Initiated `pytest` Migration**:
+  - Added `pytest-asyncio` to project dependencies (`requirements.txt`) to support asynchronous testing with `pytest`.
+  - Successfully converted `tests/test_cbioportal_server.py` from `unittest` to `pytest` style:
+    - Replaced `unittest.TestCase` structure with standalone test functions.
+    - Converted `setUp` method and mock data initialization to `pytest` fixtures (`mock_study_data`, `mock_gene_data`, `cbioportal_server_instance`).
+    - Updated assertion syntax from `self.assertEqual` etc., to standard Python `assert`.
+    - Adapted asynchronous tests using `@pytest.mark.asyncio` and `await`, removing the need for `asyncio.run()` within tests.
+  - Configured `pytest.ini` to include `asyncio_mode = auto` and `asyncio_default_fixture_loop_scope = function` to address `pytest-asyncio` deprecation warnings and improve integration.
+- **Impact**: This modernization effort aims to make the test suite more readable, maintainable, and aligned with current Python testing best practices. The `tests/test_cbioportal_server.py` file now fully utilizes `pytest` features.
+
 #### Next Steps
 
 - The cBioPortal MCP server now features full async support with significant performance improvements
