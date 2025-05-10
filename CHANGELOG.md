@@ -231,6 +231,13 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Categorized tools by functionality (data retrieval, molecular data)
   - Added thorough documentation on how FastMCP handles async methods
 
+- **Step 7: Implement Concurrency for Bulk Operations**:
+  - Added `get_multiple_studies` method to fetch studies in parallel using `asyncio.gather`
+  - Implemented `get_multiple_genes` with smart batching for efficient concurrent requests
+  - Added performance metrics like execution time to concurrent operations
+  - Registered new bulk operations as MCP tools with descriptive documentation
+  - Resolved the unused `asyncio` import warning by leveraging asyncio's concurrency features
+
 
 
   #### Next Steps

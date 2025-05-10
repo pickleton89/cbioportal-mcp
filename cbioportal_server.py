@@ -148,6 +148,10 @@ class CBioPortalMCPServer:
         self.mcp.tool(description="Get clinical data with pagination support")(self.get_clinical_data)
         self.mcp.tool(description="Get molecular profiles with pagination support")(self.get_molecular_profiles)
         self.mcp.tool(description="Search for studies by keyword with pagination support")(self.search_studies)
+        
+        # Concurrent bulk operations
+        self.mcp.tool(description="Get multiple studies concurrently for better performance")(self.get_multiple_studies)
+        self.mcp.tool(description="Get multiple genes concurrently with automatic batching")(self.get_multiple_genes)
 
     async def _make_api_request(self, endpoint: str, method: str = "GET", params: Optional[Dict[str, Any]] = None, json_data: Optional[Any] = None) -> Any:
         """Make an asynchronous API request to the cBioPortal API."""
@@ -547,6 +551,125 @@ class CBioPortalMCPServer:
         except Exception as e:
             return {"error": f"Failed to get clinical data for study {study_id}: {str(e)}"}
 
+    # --- Bulk Operations with Concurrency ---
+    
+    async def get_multiple_studies(self, study_ids: List[str]) -> Dict:
+        """
+        Get details for multiple studies concurrently.
+        
+        This method demonstrates the power of async concurrency by fetching
+        multiple studies in parallel, which is much faster than sequential requests.
+        
+        Args:
+            study_ids: List of study IDs to fetch
+            
+        Returns:
+            Dictionary mapping study IDs to their details, with metadata about the operation
+        """
+        if not study_ids:
+            return {"studies": {}, "metadata": {"count": 0, "errors": 0}}
+            
+        # Create a reusable async function for fetching a single study
+        async def fetch_study(study_id):
+            try:
+                data = await self._make_api_request(f"studies/{study_id}")
+                return {"study_id": study_id, "data": data, "success": True}
+            except Exception as e:
+                return {"study_id": study_id, "error": str(e), "success": False}
+                
+        # Create tasks for all study IDs and run them concurrently
+        tasks = [fetch_study(study_id) for study_id in study_ids]
+        start_time = asyncio.get_event_loop().time()
+        # Use asyncio.gather to execute all tasks concurrently
+        results = await asyncio.gather(*tasks)
+        end_time = asyncio.get_event_loop().time()
+        
+        # Process results into a structured response
+        studies_dict = {}
+        error_count = 0
+        
+        for result in results:
+            if result["success"]:
+                studies_dict[result["study_id"]] = result["data"]
+            else:
+                studies_dict[result["study_id"]] = {"error": result["error"]}
+                error_count += 1
+                
+        return {
+            "studies": studies_dict,
+            "metadata": {
+                "count": len(study_ids),
+                "errors": error_count,
+                "execution_time": round(end_time - start_time, 3),
+                "concurrent": True
+            }
+        }
+        
+    async def get_multiple_genes(self, gene_ids: List[str], gene_id_type: str = "ENTREZ_GENE_ID", projection: str = "SUMMARY") -> Dict:
+        """
+        Get information about multiple genes concurrently.
+        
+        This method uses concurrency to fetch multiple genes in parallel,
+        which is much more efficient than sequential requests for large batches.
+        
+        Args:
+            gene_ids: List of gene IDs (Entrez IDs or Hugo symbols)
+            gene_id_type: Type of gene ID provided (ENTREZ_GENE_ID or HUGO_GENE_SYMBOL)
+            projection: Level of detail to return (ID, SUMMARY, DETAILED)
+            
+        Returns:
+            Dictionary with gene information and performance metadata
+        """
+        if not gene_ids:
+            return {"genes": {}, "metadata": {"count": 0, "errors": 0}}
+        
+        # For large gene lists, break into smaller batches for API compatibility
+        batch_size = 100  # cBioPortal API handles batches better than very large requests
+        gene_batches = [gene_ids[i:i + batch_size] for i in range(0, len(gene_ids), batch_size)]
+        
+        async def fetch_gene_batch(batch):
+            try:
+                params = {"geneIdType": gene_id_type, "projection": projection}
+                batch_data = await self._make_api_request("genes/fetch", method="POST", params=params, json_data=batch)
+                return {"data": batch_data, "success": True}
+            except Exception as e:
+                return {"error": str(e), "success": False}
+        
+        # Create tasks for all batches and run them concurrently
+        tasks = [fetch_gene_batch(batch) for batch in gene_batches]
+        start_time = asyncio.get_event_loop().time()
+        batch_results = await asyncio.gather(*tasks)
+        end_time = asyncio.get_event_loop().time()
+        
+        # Process results
+        all_genes = []
+        error_count = 0
+        
+        for result in batch_results:
+            if result["success"]:
+                all_genes.extend(result["data"])
+            else:
+                error_count += 1
+        
+        # Convert to dictionary for easier lookup
+        genes_dict = {}
+        for gene in all_genes:
+            gene_id = gene.get("entrezGeneId") or gene.get("hugoGeneSymbol")
+            if gene_id:
+                genes_dict[str(gene_id)] = gene
+        
+        return {
+            "genes": genes_dict,
+            "metadata": {
+                "count": len(genes_dict),
+                "total_requested": len(gene_ids),
+                "errors": error_count,
+                "execution_time": round(end_time - start_time, 3),
+                "concurrent": True,
+                "batches": len(gene_batches)
+            }
+        }
+    
     # --- Other methods ---
 
     async def get_study_details(self, study_id: str) -> Dict:
