@@ -785,8 +785,15 @@ def main():
             loop = None
 
         if loop and loop.is_running():
-            # If there's already a running event loop (e.g., in Claude Desktop), block on the coroutine
-            loop.run_until_complete(server.run(transport=args.transport, log_level=args.log_level))
+            # If there's already a running event loop (e.g., in Claude Desktop), schedule the server and try to wait for it
+            task = loop.create_task(server.run(transport=args.transport, log_level=args.log_level))
+            try:
+                loop.run_until_complete(task)
+            except RuntimeError:
+                # If run_until_complete is not allowed, sleep while the task is not done
+                import time
+                while not task.done():
+                    time.sleep(1)
         else:
             asyncio.run(server.run(transport=args.transport, log_level=args.log_level))
     except KeyboardInterrupt:
