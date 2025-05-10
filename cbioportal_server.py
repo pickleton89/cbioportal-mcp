@@ -778,7 +778,7 @@ def main():
     # Create and run the server (FastMCP handles the async event loop)
     server = CBioPortalMCPServer(base_url=args.base_url)
     try:
-        server.run(transport=args.transport, log_level=args.log_level)
+        asyncio.run(server.run(transport=args.transport, log_level=args.log_level))
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
     except Exception as e:
