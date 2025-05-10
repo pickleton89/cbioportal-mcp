@@ -306,6 +306,20 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Fixed integration with Claude Desktop which now successfully connects to the server
   - Maintained the benefits of async implementation for I/O-bound API calls
 
+### 2025-05-10 (09:42)
+
+#### Async Function Call Fixes
+
+- **Resolved `TypeError: 'coroutine' object is not iterable` in `search_studies`**:
+  - Modified `search_studies` to be an `async def` function.
+  - Ensured the call to `self._make_api_request("studies")` within `search_studies` is properly `await`ed.
+  - Improved error handling within `search_studies` for API and network issues.
+  - Adjusted pagination logic in the response when `limit` is 0 for better clarity.
+- **Proactively fixed `get_molecular_profiles`**:
+  - Modified `get_molecular_profiles` to be an `async def` function.
+  - Ensured the call to `self._make_api_request(...)` within `get_molecular_profiles` is properly `await`ed.
+- **Impact**: These changes resolve runtime errors when these functions are called, allowing them to correctly interact with the asynchronous `_make_api_request` method. This enhances the stability and reliability of the MCP server when performing these operations.
+
 #### Next Steps
 
 - The cBioPortal MCP server now features full async support with significant performance improvements
