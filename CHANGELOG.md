@@ -377,6 +377,19 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
     - Synchronized the `expected_tools` set with the actual public methods in `CBioPortalMCPServer`, removing entries for non-existent methods (`get_clinical_attributes_in_study`, `get_all_clinical_attributes`) to ensure test accuracy.
 - **Impact**: These changes significantly improve the robustness and maintainability of the server's core lifecycle management and tool registration processes. The enhanced test suite now provides strong guarantees for these critical functionalities, ensuring all exposed tools are correctly registered and lifecycle events are handled as expected.
 
+#### Pagination Test Suite Enhancements (11:08)
+
+- **Granular Tests for `paginate_results` (`tests/test_pagination.py`)**:
+  - Added comprehensive unit tests for the `paginate_results` helper method in `cbioportal_server.py` to cover various scenarios:
+    - `test_paginate_results_basic`: Verifies basic multi-page iteration.
+    - `test_paginate_results_empty_first_call`: Ensures correct handling when the API returns no data on the first call.
+    - `test_paginate_results_with_max_pages`: Confirms that the `max_pages` parameter correctly limits fetched pages.
+    - `test_paginate_results_last_page_partial`: Checks correct termination when the API's last page has fewer items than `page_size`.
+- **Bug Fix in `paginate_results` (`cbioportal_server.py`)**:
+  - Corrected an issue where `unittest.mock.call` would not accurately capture `params` for `_make_api_request` due to mutable dictionary references.
+  - Fixed by passing `request_params.copy()` to `_make_api_request`, ensuring each call receives a distinct snapshot of parameters.
+- **Impact**: Improved test coverage for the core pagination logic, leading to increased confidence in data retrieval. The bug fix ensures test accuracy for methods relying on `paginate_results`.
+
 #### Next Steps
 
 - The cBioPortal MCP server now features full async support with significant performance improvements

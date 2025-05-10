@@ -367,3 +367,132 @@ async def test_get_molecular_profiles_pagination(
 
     # The API call should be to fetch all profiles for the study, without pagination params
     mock_api_request.assert_called_with(f"studies/{study_id}/molecular-profiles")
+
+
+@pytest.mark.asyncio
+@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+async def test_paginate_results_basic(mock_make_api_request, cbioportal_server_instance):
+    server = cbioportal_server_instance
+    endpoint = "studies"
+    page_size = 2
+    mock_page_1_data = [{"id": 1}, {"id": 2}]
+    mock_page_2_data = [{"id": 3}, {"id": 4}]
+    mock_empty_page_data = []
+
+    # Configure the mock to return different data for sequential calls
+    mock_make_api_request.side_effect = [
+        mock_page_1_data,
+        mock_page_2_data,
+        mock_empty_page_data, # Signifies no more data
+    ]
+
+    collected_results = []
+    async for page_data in server.paginate_results(endpoint, params={"pageSize": page_size}):
+        collected_results.extend(page_data)
+
+    assert collected_results == mock_page_1_data + mock_page_2_data
+
+    expected_calls = [
+        call(endpoint, method="GET", params={"pageNumber": 0, "pageSize": page_size}, json_data=None),
+        call(endpoint, method="GET", params={"pageNumber": 1, "pageSize": page_size}, json_data=None),
+        call(endpoint, method="GET", params={"pageNumber": 2, "pageSize": page_size}, json_data=None), # This call returns empty
+    ]
+    mock_make_api_request.assert_has_calls(expected_calls)
+    assert mock_make_api_request.call_count == 3
+
+
+@pytest.mark.asyncio
+@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+async def test_paginate_results_empty_first_call(mock_make_api_request, cbioportal_server_instance):
+    server = cbioportal_server_instance
+    endpoint = "studies"
+    page_size = 2
+    mock_empty_page_data = []
+
+    mock_make_api_request.return_value = mock_empty_page_data
+
+    collected_results = []
+    async for page_data in server.paginate_results(
+        endpoint, 
+        params={"pageNumber": 0, "pageSize": page_size}
+    ):
+        collected_results.extend(page_data)
+
+    assert collected_results == []
+
+    # Expect only one call, which returns empty
+    expected_calls = [
+        call(endpoint, method="GET", params={"pageNumber": 0, "pageSize": page_size}, json_data=None),
+    ]
+    mock_make_api_request.assert_has_calls(expected_calls)
+    assert mock_make_api_request.call_count == 1
+
+
+@pytest.mark.asyncio
+@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+async def test_paginate_results_with_max_pages(mock_make_api_request, cbioportal_server_instance):
+    server = cbioportal_server_instance
+    endpoint = "studies"
+    page_size = 1
+    max_pages_to_fetch = 2
+
+    # Mock API to simulate more data than max_pages
+    mock_page_1_data = [{"id": 1}]
+    mock_page_2_data = [{"id": 2}]
+    mock_page_3_data = [{"id": 3}] # This page should not be fetched
+
+    mock_make_api_request.side_effect = [
+        mock_page_1_data,
+        mock_page_2_data,
+        mock_page_3_data, 
+    ]
+
+    collected_results = []
+    async for page_data in server.paginate_results(
+        endpoint, 
+        params={"pageNumber": 0, "pageSize": page_size}, 
+        max_pages=max_pages_to_fetch
+    ):
+        collected_results.extend(page_data)
+
+    assert collected_results == mock_page_1_data + mock_page_2_data
+
+    expected_calls = [
+        call(endpoint, method="GET", params={"pageNumber": 0, "pageSize": page_size}, json_data=None),
+        call(endpoint, method="GET", params={"pageNumber": 1, "pageSize": page_size}, json_data=None),
+        # No call for pageNumber 2 because max_pages is 2
+    ]
+    mock_make_api_request.assert_has_calls(expected_calls)
+    assert mock_make_api_request.call_count == 2 # Should only call API twice
+
+
+@pytest.mark.asyncio
+@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+async def test_paginate_results_last_page_partial(mock_make_api_request, cbioportal_server_instance):
+    server = cbioportal_server_instance
+    endpoint = "studies"
+    page_size = 3
+
+    mock_page_1_data = [{"id": 1}, {"id": 2}, {"id": 3}] # Full page
+    mock_page_2_partial_data = [{"id": 4}, {"id": 5}]    # Partial page, less than page_size
+
+    mock_make_api_request.side_effect = [
+        mock_page_1_data,
+        mock_page_2_partial_data,
+    ]
+
+    collected_results = []
+    async for page_data in server.paginate_results(
+        endpoint, 
+        params={"pageNumber": 0, "pageSize": page_size}
+    ):
+        collected_results.extend(page_data)
+
+    assert collected_results == mock_page_1_data + mock_page_2_partial_data
+
+    expected_calls = [
+        call(endpoint, method="GET", params={"pageNumber": 0, "pageSize": page_size}, json_data=None),
+        call(endpoint, method="GET", params={"pageNumber": 1, "pageSize": page_size}, json_data=None),
+    ]
+    mock_make_api_request.assert_has_calls(expected_calls)
+    assert mock_make_api_request.call_count == 2 # API called for page 0 and page 1

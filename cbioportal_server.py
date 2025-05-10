@@ -105,7 +105,7 @@ class CBioPortalMCPServer:
 
             # Make the API request
             results = await self._make_api_request(
-                endpoint, method=method, params=request_params, json_data=json_data
+                endpoint, method=method, params=request_params.copy(), json_data=json_data
             )
 
             # Check if we got any results
