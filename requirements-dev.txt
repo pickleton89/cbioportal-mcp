@@ -1,0 +1,2 @@
+# Development-specific dependencies
+syrupy

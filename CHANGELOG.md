@@ -4,47 +4,6 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ## [Unreleased]
 
-### 2025-05-10
-
-#### Test Suite Refactoring: Multi-Entity API Tests & Bug Fixes
-
-- **Objective**: Continue improving test suite organization and address bugs uncovered during refactoring.
-- **Refactoring**:
-    - Created `tests/test_multiple_entity_apis.py`.
-    - Moved all `test_get_multiple_*` tests (7 tests) from `tests/test_cbioportal_server.py` to `tests/test_multiple_entity_apis.py`.
-    - `tests/test_cbioportal_server.py` is now significantly streamlined, primarily containing setup code.
-- **Bug Fixes in `cbioportal_server.py`**:
-    - `get_multiple_studies`: Ensured metadata includes `"concurrent": True` even for empty input lists, fixing a `KeyError`.
-    - `get_multiple_genes`:
-        - Corrected dictionary keying to use `hugoGeneSymbol` or `entrezGeneId` based on the `gene_id_type` request parameter, resolving `KeyError` and count discrepancies.
-        - Refined `execution_time` calculation to accurately reflect the entire method's duration.
-- **Test Fixes in `tests/test_multiple_entity_apis.py`**:
-    - `test_get_multiple_genes_multiple_batches_success`: Changed `mock_make_api_request.side_effect` from an `async def` function to a list of mock responses (`[mock_batch_1_response, mock_batch_2_response]`). This resolved an `AssertionError` where only one batch of results was being recognized.
-- **Linting**:
-    - Addressed `E402` (module level import not at top of file) in `tests/test_multiple_entity_apis.py` with `# noqa: E402` for a necessary import order.
-- **Verification**: All 33 tests in the suite are passing.
-- **Impact**: Further organizes the test suite by grouping related tests. Critical bugs in multi-entity fetch methods were identified and fixed, improving data integrity and reliability. The test suite itself is more robust due to mocking improvements.
-
-#### Test Suite Refactoring: Lifecycle Tests
-
-- **Objective**: Improve test suite organization and maintainability.
-- **Refactoring**:
-    - Created a new test file: `tests/test_server_lifecycle.py`.
-    - Moved the following tests from `tests/test_cbioportal_server.py` to `tests/test_server_lifecycle.py`:
-        - `test_lifecycle_hooks_registered`
-        - `test_tool_registration`
-        - `test_server_startup_initializes_async_client`
-        - `test_server_shutdown_closes_async_client`
-        - `test_server_shutdown_handles_no_client`
-        - `test_initialization`
-    - Removed older, redundant lifecycle tests (`test_startup_initializes_client`, `test_shutdown_closes_client`) from `tests/test_cbioportal_server.py`.
-- **Fixes**:
-    - Corrected `AttributeError` in `test_tool_registration` and `test_initialization` within `tests/test_server_lifecycle.py` by ensuring `server.mcp.get_tools()` (which returns a list of strings) is correctly processed into a set of tool names.
-    - Addressed lint errors related to unused imports in both `tests/test_cbioportal_server.py` and `tests/test_server_lifecycle.py` after moving tests.
-- **Verification**: All 33 tests in the suite are passing after these changes.
-- **Impact**: This change enhances the structure of the test suite, making it easier to navigate and maintain tests related to server lifecycle and registration.
-
-
 
 ### 2025-05-09
 
@@ -483,6 +442,62 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
     - `test_server_shutdown_no_client`: Verified graceful handling when `shutdown` is called without an active client.
     - `test_register_tools_adds_public_methods`: Confirmed that public methods of `CBioPortalMCPServer` (excluding private/special methods) are correctly registered as tools with the FastMCP instance. This involved debugging and correctly mocking the interaction with `FastMCP.get_tools()`.
 - **Impact**: Strengthened the test suite by providing comprehensive coverage for essential server operational aspects and the correct functioning of the MCP tool discovery mechanism. This ensures reliability and makes future refactoring of server initialization or tool exposure safer.
+
+#### Test Suite Refactoring: Lifecycle Tests
+
+- **Objective**: Improve test suite organization and maintainability.
+- **Refactoring**:
+    - Created a new test file: `tests/test_server_lifecycle.py`.
+    - Moved the following tests from `tests/test_cbioportal_server.py` to `tests/test_server_lifecycle.py`:
+        - `test_lifecycle_hooks_registered`
+        - `test_tool_registration`
+        - `test_server_startup_initializes_async_client`
+        - `test_server_shutdown_closes_async_client`
+        - `test_server_shutdown_handles_no_client`
+        - `test_initialization`
+    - Removed older, redundant lifecycle tests (`test_startup_initializes_client`, `test_shutdown_closes_client`) from `tests/test_cbioportal_server.py`.
+- **Fixes**:
+    - Corrected `AttributeError` in `test_tool_registration` and `test_initialization` within `tests/test_server_lifecycle.py` by ensuring `server.mcp.get_tools()` (which returns a list of strings) is correctly processed into a set of tool names.
+    - Addressed lint errors related to unused imports in both `tests/test_cbioportal_server.py` and `tests/test_server_lifecycle.py` after moving tests.
+- **Verification**: All 33 tests in the suite are passing after these changes.
+- **Impact**: This change enhances the structure of the test suite, making it easier to navigate and maintain tests related to server lifecycle and registration.
+
+#### Test Suite Refactoring: Multi-Entity API Tests & Bug Fixes
+
+- **Objective**: Continue improving test suite organization and address bugs uncovered during refactoring.
+- **Refactoring**:
+    - Created `tests/test_multiple_entity_apis.py`.
+    - Moved all `test_get_multiple_*` tests (7 tests) from `tests/test_cbioportal_server.py` to `tests/test_multiple_entity_apis.py`.
+    - `tests/test_cbioportal_server.py` is now significantly streamlined, primarily containing setup code.
+- **Bug Fixes in `cbioportal_server.py`**:
+    - `get_multiple_studies`: Ensured metadata includes `"concurrent": True` even for empty input lists, fixing a `KeyError`.
+    - `get_multiple_genes`:
+        - Corrected dictionary keying to use `hugoGeneSymbol` or `entrezGeneId` based on the `gene_id_type` request parameter, resolving `KeyError` and count discrepancies.
+        - Refined `execution_time` calculation to accurately reflect the entire method's duration.
+- **Test Fixes in `tests/test_multiple_entity_apis.py`**:
+    - `test_get_multiple_genes_multiple_batches_success`: Changed `mock_make_api_request.side_effect` from an `async def` function to a list of mock responses (`[mock_batch_1_response, mock_batch_2_response]`). This resolved an `AssertionError` where only one batch of results was being recognized.
+- **Linting**:
+    - Addressed `E402` (module level import not at top of file) in `tests/test_multiple_entity_apis.py` with `# noqa: E402` for a necessary import order.
+- **Verification**: All 33 tests in the suite are passing.
+- **Impact**: Further organizes the test suite by grouping related tests. Critical bugs in multi-entity fetch methods were identified and fixed, improving data integrity and reliability. The test suite itself is more robust due to mocking improvements.
+
+#### Input Validation Tests and Implementation (15:43)
+
+- **Objective**: Enhance server robustness by implementing comprehensive input validation for API methods.
+- **New Tests Added (`tests/test_input_validation.py`)**:
+    - Created a new test file `test_input_validation.py` dedicated to input validation scenarios.
+    - Implemented parameterized tests to cover various invalid inputs (e.g., negative numbers, empty strings, incorrect types) for the following methods:
+        - `get_cancer_studies` (page_number, page_size)
+        - `get_study_details` (study_id)
+        - `get_cancer_types` (page_number, page_size)
+        - `get_molecular_profiles` (study_id, page_number, page_size)
+        - `get_samples_in_study` (study_id, page_number, page_size)
+        - `search_genes` (keyword, page_number, page_size)
+        - `search_studies` (keyword, page_number, page_size)
+- **Server-Side Validation Logic (`cbioportal_server.py`)**:
+    - Added input validation logic to the corresponding server methods to raise `TypeError` or `ValueError` for invalid inputs before any external API calls are made.
+- **Verification**: All 42 input validation tests are passing.
+- **Impact**: Significantly improves the reliability and error handling of the server by ensuring that API methods correctly validate their input parameters.
 
 #### Next Steps
 
