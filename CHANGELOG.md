@@ -441,6 +441,18 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Removed a previously problematic test case for `get_mutations_in_molecular_profile_for_sample_ids` as no direct corresponding server method was identified.
 - **Impact**: Enhanced the reliability and comprehensiveness of the test suite by ensuring API methods correctly handle and report various error conditions. This improves confidence in the server's stability and provides clearer diagnostics when issues arise.
 
+### 2025-05-10
+
+#### Lifecycle and Registration Tests
+- Implemented comprehensive tests for server lifecycle management ([startup](cci:1://file:///Users/jeffkiefer/Documents/projects/cbioportal_MCP/tests/test_cbioportal_server.py:305:0-317:27), [shutdown](cci:1://file:///Users/jeffkiefer/Documents/projects/cbioportal_MCP/tests/test_cbioportal_server.py:320:0-338:70)) and MCP tool registration:
+  - Verified that [startup()](cci:1://file:///Users/jeffkiefer/Documents/projects/cbioportal_MCP/tests/test_cbioportal_server.py:305:0-317:27) correctly initializes the `httpx.AsyncClient`.
+  - Verified that [shutdown()](cci:1://file:///Users/jeffkiefer/Documents/projects/cbioportal_MCP/tests/test_cbioportal_server.py:320:0-338:70) correctly closes an active `httpx.AsyncClient` and handles cases with no active client.
+  - Confirmed that [startup](cci:1://file:///Users/jeffkiefer/Documents/projects/cbioportal_MCP/tests/test_cbioportal_server.py:305:0-317:27) and [shutdown](cci:1://file:///Users/jeffkiefer/Documents/projects/cbioportal_MCP/tests/test_cbioportal_server.py:320:0-338:70) methods are properly registered as FastMCP lifecycle hooks (`on_startup`, `on_shutdown`).
+  - Tested the `_register_tools()` method to ensure all intended public API methods are registered as MCP tools and that private/lifecycle methods are excluded.
+  - Ensured server initialization sets up the base URL and MCP instance correctly.
+- Impact: Increased confidence in the server's core operational integrity, ensuring proper resource management and correct exposure of its capabilities through FastMCP.
+
+
 #### Next Steps
 
 - The cBioPortal MCP server now features full async support with significant performance improvements
