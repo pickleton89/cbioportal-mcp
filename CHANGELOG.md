@@ -387,15 +387,6 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Configured `pytest.ini` to include `asyncio_mode = auto` and `asyncio_default_fixture_loop_scope = function` to address `pytest-asyncio` deprecation warnings and improve integration.
 - **Impact**: This modernization effort aims to make the test suite more readable, maintainable, and aligned with current Python testing best practices. The `tests/test_cbioportal_server.py` file now fully utilizes `pytest` features.
 
-#### Next Steps
-
-- The cBioPortal MCP server now features full async support with significant performance improvements
-- Potential future enhancements:
-  - Apply concurrent fetching to remaining collection methods that could benefit from parallelization
-  - Implement more sophisticated error handling and retry mechanisms for network errors
-  - Add configuration options for controlling concurrency limits and timeout settings
-  - Develop more comprehensive benchmarking and performance monitoring tools
-  - Consider caching frequently requested data to further improve performance
 
 ### 2025-05-10 (11:00)
 
@@ -436,15 +427,6 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Deleted `test_get_genes_pagination`: This test was skipped because the server's `get_genes` method is designed for fetching specific gene IDs, not for paginated listing of all genes.
 - **Impact**: Streamlined the test suite by removing tests for non-existent or inapplicable functionality, improving clarity and focus.
 
-#### Next Steps
-
-- The cBioPortal MCP server now features full async support with significant performance improvements
-- Potential future enhancements:
-  - Apply concurrent fetching to remaining collection methods that could benefit from parallelization
-  - Implement more sophisticated error handling and retry mechanisms for network errors
-  - Add configuration options for controlling concurrency limits and timeout settings
-  - Develop more comprehensive benchmarking and performance monitoring tools
-  - Consider caching frequently requested data to further improve performance
 
 ### 2025-05-10 (11:30)
 
