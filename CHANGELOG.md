@@ -512,6 +512,16 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - All 12 snapshot tests in `test_snapshot_responses.py` are now passing.
 - Impact: Enhanced the server's capability to provide gene panel information and ensured response consistency through snapshot testing.
 
+
+### 2025-05-10 (16:30)
+
+#### Test Suite Refinement
+- Consolidated server lifecycle and tool registration tests into `tests/test_server_lifecycle.py`.
+- Enhanced lifecycle tests in `tests/test_server_lifecycle.py` to include checks for startup and shutdown logging.
+- Removed redundant test file `tests/test_cbioportal_server.py` as its tests are now covered in `tests/test_server_lifecycle.py` and `tests/test_multiple_entity_apis.py`.
+- Impact: Streamlined test structure, removed ~120 lines of redundant test code, and improved clarity of test organization. All 90 tests pass.
+- Added `get_gene_panels_for_study` and `get_gene_panel_details` to `test_tool_registration`.
+
 #### Next Steps
 
 - The cBioPortal MCP server now features full async support with significant performance improvements
@@ -521,4 +531,6 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Add configuration options for controlling concurrency limits and timeout settings
   - Develop more comprehensive benchmarking and performance monitoring tools
   - Consider caching frequently requested data to further improve performance
+
+
 

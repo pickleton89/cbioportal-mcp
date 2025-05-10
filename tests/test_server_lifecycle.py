@@ -82,18 +82,22 @@ async def test_tool_registration(cbioportal_server_instance):
 @pytest.mark.asyncio
 async def test_server_startup_initializes_async_client(
     cbioportal_server_instance_unstarted,
-):
-    """Test that server.startup() initializes an httpx.AsyncClient."""
+    mocker # Added mocker fixture
+): 
+    """Test that server.startup() initializes an httpx.AsyncClient and logs correctly."""
     server = cbioportal_server_instance_unstarted
     assert server.client is None, "Client should be None before startup"
+
+    mock_logger_info = mocker.patch('cbioportal_server.logger.info')
 
     await server.startup()
 
     assert isinstance(server.client, httpx.AsyncClient), (
         "Client should be an httpx.AsyncClient after startup"
     )
-    # Optionally, check default timeout if it's critical
     assert server.client.timeout.read == 30.0
+    mock_logger_info.assert_called_with("cBioPortal MCP Server started with async HTTP client")
+
     # Clean up the client created during this test
     if server.client:
         await server.client.aclose()
@@ -105,8 +109,9 @@ async def test_server_startup_initializes_async_client(
 @pytest.mark.asyncio
 async def test_server_shutdown_closes_async_client(
     cbioportal_server_instance_unstarted,
-):
-    """Test that server.shutdown() calls aclose() on the httpx.AsyncClient."""
+    mocker # Added mocker fixture
+): 
+    """Test that server.shutdown() calls aclose() on the httpx.AsyncClient and logs correctly."""
     server = cbioportal_server_instance_unstarted
 
     # Mock the client and its aclose method
@@ -114,9 +119,12 @@ async def test_server_shutdown_closes_async_client(
     # Simulate server startup having initialized the client
     server.client = mock_async_client
 
+    mock_logger_info = mocker.patch('cbioportal_server.logger.info')
+
     await server.shutdown()
 
     mock_async_client.aclose.assert_called_once()
+    mock_logger_info.assert_called_with("cBioPortal MCP Server async HTTP client closed")
     # Ensure client is set to None after shutdown as per CBioPortalMCPServer.shutdown logic
     # This depends on actual implementation; if shutdown doesn't set to None, adjust test
     # For now, assuming it might, or that it's good practice for the test to verify client state.
@@ -127,15 +135,19 @@ async def test_server_shutdown_closes_async_client(
 
 
 @pytest.mark.asyncio
-async def test_server_shutdown_handles_no_client(cbioportal_server_instance_unstarted):
-    """Test that server.shutdown() handles self.client being None gracefully."""
+async def test_server_shutdown_handles_no_client(cbioportal_server_instance_unstarted, mocker): # Added mocker fixture
+    """Test that server.shutdown() handles self.client being None gracefully and does not log closure."""
     server = cbioportal_server_instance_unstarted
     assert server.client is None  # Ensure client is None
+
+    mock_logger_info = mocker.patch('cbioportal_server.logger.info')
 
     try:
         await server.shutdown()  # Should not raise an error
     except Exception as e:
         pytest.fail(f"server.shutdown() raised an exception with no client: {e}")
+    
+    mock_logger_info.assert_not_called() # Ensure no log call if client was None
 
 
 @pytest.mark.asyncio
