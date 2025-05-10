@@ -142,3 +142,57 @@ async def test_shutdown_closes_client(cbioportal_server_instance):
     client_to_close.aclose.assert_called_once()
     # Note: server.client itself is not set to None by the current shutdown(), which is acceptable.
     # The main thing is that aclose() was called on the active client.
+
+@pytest.mark.asyncio
+async def test_tool_registration(cbioportal_server_instance):
+    """Test that all intended public methods are registered as MCP tools and others are not."""
+    server = cbioportal_server_instance
+    
+    # Fetch the list of tool names from FastMCP's public API
+    registered_mcp_tools = await server.mcp.get_tools()
+    registered_tool_names = set(registered_mcp_tools) # Corrected: get_tools() returns tool names (strings)
+
+    expected_tools = {
+        "paginate_results",
+        "collect_all_results",
+        "get_cancer_studies",
+        "get_cancer_types",
+        "get_samples_in_study",
+        "search_genes",
+        "search_studies",
+        "get_molecular_profiles",
+        "get_mutations_in_gene",
+        "get_clinical_data",
+        "get_study_details",
+        "get_multiple_studies",
+        "get_multiple_genes",
+        "get_genes",
+        "get_sample_list_id",
+    }
+
+    # Check that all expected tools are registered
+    assert expected_tools.issubset(registered_tool_names), \
+        f"Missing tools: {expected_tools - registered_tool_names}"
+
+    # Check that no unexpected tools (like private or lifecycle methods) are registered
+    # The _register_tools method already has an exclusion list. 
+    # We can verify its effectiveness by checking against a few key exclusions.
+    excluded_methods = {
+        "startup", 
+        "shutdown", 
+        "_make_api_request", 
+        "_register_tools",
+        "client", # attribute
+        "mcp",    # attribute
+        "base_url"# attribute
+    }
+    
+    unexpectedly_registered = excluded_methods.intersection(registered_tool_names)
+    assert not unexpectedly_registered, \
+        f"Unexpectedly registered tools: {unexpectedly_registered}"
+
+    # Optional: Check if the number of registered tools exactly matches the expected count
+    # This helps catch if new methods were added to the class but not to the expected_tools list or vice-versa.
+    assert len(registered_tool_names) == len(expected_tools), \
+        f"Mismatch in tool count. Expected {len(expected_tools)}, got {len(registered_tool_names)}. \
+        Registered: {registered_tool_names}. Expected: {expected_tools}"

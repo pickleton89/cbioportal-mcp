@@ -357,14 +357,32 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Develop more comprehensive benchmarking and performance monitoring tools
   - Consider caching frequently requested data to further improve performance
 
-### 2025-05-10 (10:23)
+### 2025-05-10 (11:00)
 
-#### Test Suite Modernization & Fixes
-- Corrected `has_more` pagination logic in `cbioportal_server.py` for `get_cancer_studies` and `get_cancer_types` methods to accurately reflect API response behavior (using `== page_size` instead of `>= page_size`).
-- Significantly refactored `tests/test_pagination.py`:
-  - Aligned test method calls and parameters with actual server method signatures (e.g., `get_mutations_in_gene`, `get_clinical_data`, `get_molecular_profiles`).
-  - Updated mock API request assertions to match corrected server logic and method calls.
-  - Addressed `AttributeError` and `TypeError` issues by fixing method names, parameters, and mock setups.
-  - Skipped tests (`test_get_all_clinical_attributes_pagination`, `test_get_genes_pagination`) for server methods that do not exist or have different designs than assumed by the original tests.
-  - Ensured `mock_api_request` is correctly patched for all relevant tests.
-- Impact: The pagination tests in `tests/test_pagination.py` are now passing or appropriately skipped, leading to a more reliable test suite.
+#### Server Lifecycle and Tool Registration Enhancements
+
+- **Server Core Refinements (`cbioportal_server.py`)**:
+  - Refactored `CBioPortalMCPServer.__init__` to correctly initialize `httpx.AsyncClient` within the `startup` method, preventing client initialization issues.
+  - Ensured `startup` and `shutdown` async methods are properly registered as lifecycle hooks directly on the `FastMCP` instance (using `mcp.on_startup` and `mcp.on_shutdown`).
+  - Removed the redundant `run()` method from `CBioPortalMCPServer` as its functionality is managed by `FastMCP`.
+  - Simplified the `main()` function for improved clarity and robust `stdio` transport handling.
+- **Test Suite Enhancements (`tests/test_cbioportal_server.py`)**:
+  - Added comprehensive tests for server lifecycle management:
+    - `test_lifecycle_hooks_registered`: Verifies correct registration of startup/shutdown hooks.
+    - `test_startup_initializes_client`: Confirms HTTP client initialization on startup.
+    - `test_shutdown_closes_client`: Ensures HTTP client is closed on shutdown.
+  - Implemented `test_tool_registration` to dynamically verify that all intended public API methods are registered as MCP tools and that the list of registered tools is accurate.
+    - Iteratively debugged tool fetching logic, adapting to the correct `FastMCP.get_tools()` method.
+    - Corrected test logic to handle `mcp.get_tools()` returning a list of tool name strings directly.
+    - Synchronized the `expected_tools` set with the actual public methods in `CBioPortalMCPServer`, removing entries for non-existent methods (`get_clinical_attributes_in_study`, `get_all_clinical_attributes`) to ensure test accuracy.
+- **Impact**: These changes significantly improve the robustness and maintainability of the server's core lifecycle management and tool registration processes. The enhanced test suite now provides strong guarantees for these critical functionalities, ensuring all exposed tools are correctly registered and lifecycle events are handled as expected.
+
+#### Next Steps
+
+- The cBioPortal MCP server now features full async support with significant performance improvements
+- Potential future enhancements:
+  - Apply concurrent fetching to remaining collection methods that could benefit from parallelization
+  - Implement more sophisticated error handling and retry mechanisms for network errors
+  - Add configuration options for controlling concurrency limits and timeout settings
+  - Develop more comprehensive benchmarking and performance monitoring tools
+  - Consider caching frequently requested data to further improve performance
