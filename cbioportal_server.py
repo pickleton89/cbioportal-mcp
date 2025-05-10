@@ -123,18 +123,31 @@ class CBioPortalMCPServer:
 
 
     def _register_tools(self):
-        # FastMCP automatically detects async methods and handles them correctly
-        self.mcp.tool()(self.get_cancer_studies)
-        self.mcp.tool()(self.get_cancer_types)
-        self.mcp.tool()(self.get_study_details)
-        self.mcp.tool()(self.get_samples_in_study)
-        self.mcp.tool()(self.get_genes)
-        self.mcp.tool()(self.search_genes)
-        self.mcp.tool()(self.get_mutations_in_gene)
-        self.mcp.tool()(self.get_mutations_by_gene_and_study)
-        self.mcp.tool()(self.get_clinical_data)
-        self.mcp.tool()(self.get_molecular_profiles)
-        self.mcp.tool()(self.search_studies)
+        """
+        Register all methods as MCP tools.
+        
+        FastMCP automatically detects async methods and handles them correctly.
+        When an async method is called through the MCP interface, FastMCP will:
+        1. Run the method in the event loop
+        2. Await the result
+        3. Return the result to the client
+        
+        This makes the async implementation completely transparent to MCP clients.
+        """
+        # Data retrieval tools
+        self.mcp.tool(description="Get cancer studies with pagination support")(self.get_cancer_studies)
+        self.mcp.tool(description="Get cancer types with pagination support")(self.get_cancer_types)
+        self.mcp.tool(description="Get detailed information about a specific study")(self.get_study_details)
+        self.mcp.tool(description="Get samples in a study with pagination support")(self.get_samples_in_study)
+        self.mcp.tool(description="Get information about specific genes")(self.get_genes)
+        self.mcp.tool(description="Search for genes by keyword with pagination support")(self.search_genes)
+        
+        # Molecular data tools
+        self.mcp.tool(description="Get mutations in a gene with pagination support")(self.get_mutations_in_gene)
+        self.mcp.tool(description="Get mutations by gene and study")(self.get_mutations_by_gene_and_study)
+        self.mcp.tool(description="Get clinical data with pagination support")(self.get_clinical_data)
+        self.mcp.tool(description="Get molecular profiles with pagination support")(self.get_molecular_profiles)
+        self.mcp.tool(description="Search for studies by keyword with pagination support")(self.search_studies)
 
     async def _make_api_request(self, endpoint: str, method: str = "GET", params: Optional[Dict[str, Any]] = None, json_data: Optional[Any] = None) -> Any:
         """Make an asynchronous API request to the cBioPortal API."""
@@ -211,36 +224,54 @@ class CBioPortalMCPServer:
         except Exception as e:
             return {"error": f"Failed to get cancer studies: {str(e)}"}
 
-    def get_cancer_types(self, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
+    async def get_cancer_types(self, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
         """
         Get a list of all available cancer types in cBioPortal with pagination support.
+        
+        Args:
+            page_number: Page number (0-based)
+            page_size: Number of items per page
+            sort_by: Field to sort by
+            direction: Sort direction (ASC or DESC)
+            limit: Maximum number of results to return (0 = all available)
+            
+        Returns:
+            Dictionary with cancer types and pagination metadata
         """
         try:
-            api_call_params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
+            # Configure API parameters
+            api_params = {"pageNumber": page_number, "pageSize": page_size, "direction": direction}
             if sort_by:
-                api_call_params["sortBy"] = sort_by
+                api_params["sortBy"] = sort_by
+                
+            # Special behavior for limit=0 (fetch all results)
             if limit == 0:
-                api_call_params["pageSize"] = 10000000
+                # Use the collect_all_results helper for automatic pagination
+                types_from_api = await self.collect_all_results("cancer-types", params=api_params)
+                types_for_response = types_from_api
+                has_more = False  # We fetched everything
+            else:
+                # Fetch just the requested page
+                types_from_api = await self._make_api_request("cancer-types", params=api_params)
+                
+                # Apply the limit if specified and smaller than the page results
+                types_for_response = types_from_api
+                if limit and 0 < limit < len(types_from_api):
+                    types_for_response = types_from_api[:limit]
             
-            types_from_api = self._make_api_request("cancer-types", params=api_call_params)
-
-            api_might_have_more = len(types_from_api) == api_call_params["pageSize"]
-            if api_call_params["pageSize"] == 10000000 and len(types_from_api) < 10000000:
-                api_might_have_more = False
-
-            types_for_response = types_from_api
-            if limit and limit > 0 and len(types_from_api) > limit:
-                types_for_response = types_from_api[:limit]
-            
-            total_items_in_response = len(types_for_response)
-
+                # Determine if there might be more data available
+                has_more = len(types_from_api) >= page_size
+        
+            # Count the actual items we're returning
+            total_items = len(types_for_response)
+        
             return {
                 "cancer_types": types_for_response,
                 "pagination": {
                     "page": page_number,
                     "page_size": page_size,
-                    "total_found": total_items_in_response,
-                    "has_more": api_might_have_more
+                    "total_found": total_items,
+                    "has_more": has_more
                 }
             }
         except Exception as e:
@@ -518,7 +549,7 @@ class CBioPortalMCPServer:
 
     # --- Other methods ---
 
-    def get_study_details(self, study_id: str) -> Dict:
+    async def get_study_details(self, study_id: str) -> Dict:
         """
         Get detailed information about a specific cancer study.
 
@@ -529,21 +560,29 @@ class CBioPortalMCPServer:
             A dictionary containing the study details.
         """
         try:
-            study = self._make_api_request(f"studies/{study_id}")
+            study = await self._make_api_request(f"studies/{study_id}")
             return {"study": study}
         except Exception as e:
             return {"error": f"Failed to get study details for {study_id}: {str(e)}"}
 
-    def get_genes(self, gene_ids: List[str], gene_id_type: str = "ENTREZ_GENE_ID", projection: str = "SUMMARY") -> Dict:
+    async def get_genes(self, gene_ids: List[str], gene_id_type: str = "ENTREZ_GENE_ID", projection: str = "SUMMARY") -> Dict:
         """
         Get information about specific genes by their Hugo symbol or Entrez ID using batch endpoint.
+        
+        Args:
+            gene_ids: List of gene IDs (Entrez IDs or Hugo symbols)
+            gene_id_type: Type of gene ID provided (ENTREZ_GENE_ID or HUGO_GENE_SYMBOL)
+            projection: Level of detail to return (ID, SUMMARY, DETAILED)
+            
+        Returns:
+            Dictionary with gene information
         """
         try:
             params = {"geneIdType": gene_id_type, "projection": projection}
-            gene_data = self._make_api_request("genes/fetch", method="POST", params=params, json_data=gene_ids)
+            gene_data = await self._make_api_request("genes/fetch", method="POST", params=params, json_data=gene_ids)
             return {"genes": gene_data}
         except Exception as e:
-            return {"error": "Failed to get gene information: " + str(e)}
+            return {"error": f"Failed to get gene information: {str(e)}"}
 
     async def run(self, transport: str = "stdio", log_level: str = "INFO"):
         """Run the cBioPortal MCP server with the specified transport.

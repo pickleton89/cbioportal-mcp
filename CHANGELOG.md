@@ -224,6 +224,13 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Added startup and shutdown status reporting
   - Improved CLI interface with better argument documentation
 
+- **Step 6: Update Tool Registration for Async Methods**:
+  - Converted remaining methods to async (`get_cancer_types`, `get_genes`, `get_study_details`)
+  - Enhanced `get_cancer_types` to use the async pagination infrastructure
+  - Added detailed method descriptions to tool registrations
+  - Categorized tools by functionality (data retrieval, molecular data)
+  - Added thorough documentation on how FastMCP handles async methods
+
 
 
   #### Next Steps
