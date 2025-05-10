@@ -778,7 +778,17 @@ def main():
     # Create and run the server (FastMCP handles the async event loop)
     server = CBioPortalMCPServer(base_url=args.base_url)
     try:
-        asyncio.run(server.run(transport=args.transport, log_level=args.log_level))
+        import asyncio
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            # If there's already a running event loop (e.g., in Claude Desktop), block on the coroutine
+            loop.run_until_complete(server.run(transport=args.transport, log_level=args.log_level))
+        else:
+            asyncio.run(server.run(transport=args.transport, log_level=args.log_level))
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
     except Exception as e:
