@@ -491,6 +491,16 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Ensured server initialization sets up the base URL and MCP instance correctly.
 - Impact: Increased confidence in the server's core operational integrity, ensuring proper resource management and correct exposure of its capabilities through FastMCP.
 
+#### Test Suite: Server Lifecycle and Tool Registration
+
+- **Objective**: Ensure robust testing for server startup/shutdown, HTTP client management, and dynamic MCP tool registration.
+- **Completed Tests in `tests/test_cbioportal_server.py`**:
+    - `test_server_lifecycle_hooks_registered`: Verified that `startup` and `shutdown` methods are correctly registered as FastMCP lifecycle hooks.
+    - `test_server_startup_initializes_client_and_logs`: Confirmed that the `startup` method initializes the `httpx.AsyncClient` and logs the action.
+    - `test_server_shutdown_closes_client_and_logs`: Ensured the `shutdown` method closes the `httpx.AsyncClient` and logs the action.
+    - `test_server_shutdown_no_client`: Verified graceful handling when `shutdown` is called without an active client.
+    - `test_register_tools_adds_public_methods`: Confirmed that public methods of `CBioPortalMCPServer` (excluding private/special methods) are correctly registered as tools with the FastMCP instance. This involved debugging and correctly mocking the interaction with `FastMCP.get_tools()`.
+- **Impact**: Strengthened the test suite by providing comprehensive coverage for essential server operational aspects and the correct functioning of the MCP tool discovery mechanism. This ensures reliability and makes future refactoring of server initialization or tool exposure safer.
 
 #### Next Steps
 
