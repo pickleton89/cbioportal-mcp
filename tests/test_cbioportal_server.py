@@ -4,7 +4,7 @@
 import sys
 import os
 import pytest
-from unittest.mock import patch, AsyncMock, call
+from unittest.mock import patch, call
 import httpx
 
 # Add the parent directory to the path so we can import the cbioportal_server module
@@ -12,81 +12,10 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
-from cbioportal_server import CBioPortalMCPServer
-
+from cbioportal_server import CBioPortalMCPServer  # noqa: E402
 
 # Pytest Fixtures
-@pytest.fixture
-def mock_study_data():
-    """Mock data for a single study."""
-    return {
-        "studyId": "study_1",
-        "name": "Test Study",
-        "description": "A study for testing",
-        "publicStudy": True,
-        "cancerTypeId": "mixed",
-    }
-
-
-@pytest.fixture
-def mock_gene_data():
-    """Mock data for a single gene."""
-    return {"entrezGeneId": 672, "hugoGeneSymbol": "BRCA1", "type": "protein-coding"}
-
-
-@pytest.fixture
-def cbioportal_server_instance():
-    """Fixture for CBioPortalMCPServer instance with default URL."""
-    return CBioPortalMCPServer(base_url="https://www.cbioportal.org/api")
-
-
-# New Fixtures for get_multiple_studies
-@pytest.fixture
-def mock_study_detail_brca():
-    return {
-        "studyId": "brca_tcga",
-        "name": "BRCA TCGA",
-        "description": "Breast Cancer TCGA",
-    }
-
-
-@pytest.fixture
-def mock_study_detail_luad():
-    return {
-        "studyId": "luad_tcga",
-        "name": "LUAD TCGA",
-        "description": "Lung Adenocarcinoma TCGA",
-    }
-
-
-# New Fixtures for get_multiple_genes
-@pytest.fixture
-def mock_gene_detail_tp53():
-    return {"entrezGeneId": 7157, "hugoGeneSymbol": "TP53", "type": "protein-coding"}
-
-
-@pytest.fixture
-def mock_gene_detail_brca1():
-    return {"entrezGeneId": 672, "hugoGeneSymbol": "BRCA1", "type": "protein-coding"}
-
-
-@pytest.fixture
-def mock_gene_batch_response_page1():
-    return [
-        {"entrezGeneId": 7157, "hugoGeneSymbol": "TP53", "type": "protein-coding"},
-        {"entrezGeneId": 672, "hugoGeneSymbol": "BRCA1", "type": "protein-coding"},
-    ]
-
-
-# New Fixture for unstarted server instance
-@pytest.fixture
-async def cbioportal_server_instance_unstarted():
-    """Provides a CBioPortalMCPServer instance without calling startup/shutdown."""
-    server = CBioPortalMCPServer(base_url="http://mocked.cbioportal.org/api")
-    yield server
-    # No automatic startup/shutdown here, tests will manage if needed
-    # However, if a test *does* start the client, it should also clean it up.
-    # For instance, test_server_startup creates and closes its own client.
+# Fixtures have been moved to tests/conftest.py
 
 
 # Test Functions
@@ -294,109 +223,6 @@ def test_api_url_configuration():
     custom_url = "https://custom-cbioportal.example.org/api"
     server_custom = CBioPortalMCPServer(base_url=custom_url)
     assert server_custom.base_url == custom_url
-
-
-def test_lifecycle_hooks_registered(cbioportal_server_instance):
-    """Test that startup and shutdown hooks are correctly registered with FastMCP."""
-    server = cbioportal_server_instance
-    assert server.mcp.on_startup == [server.startup]
-    assert server.mcp.on_shutdown == [server.shutdown]
-
-
-@pytest.mark.asyncio
-async def test_startup_initializes_client(cbioportal_server_instance):
-    """Test that the startup method initializes the httpx.AsyncClient."""
-    server = cbioportal_server_instance
-    assert server.client is None  # Check initial state before startup
-
-    await server.startup()
-
-    assert isinstance(server.client, httpx.AsyncClient)
-    assert not server.client.is_closed
-
-    # Cleanup: ensure client is closed after test
-    await server.shutdown()
-
-
-@pytest.mark.asyncio
-async def test_shutdown_closes_client(cbioportal_server_instance):
-    """Test that the shutdown method closes the httpx.AsyncClient."""
-    server = cbioportal_server_instance
-
-    # First, run startup to initialize the client
-    await server.startup()
-    assert server.client is not None, "Client should be initialized by startup"
-
-    # Mock the aclose method of the actual client instance
-    # This ensures we are testing the shutdown behavior on an active client
-    client_to_close = server.client
-    client_to_close.aclose = AsyncMock()
-
-    await server.shutdown()
-
-    client_to_close.aclose.assert_called_once()
-    # Note: server.client itself is not set to None by the current shutdown(), which is acceptable.
-    # The main thing is that aclose() was called on the active client.
-
-
-@pytest.mark.asyncio
-async def test_tool_registration(cbioportal_server_instance):
-    """Test that all intended public methods are registered as MCP tools and others are not."""
-    server = cbioportal_server_instance
-
-    # Fetch the list of tool names from FastMCP's public API
-    registered_mcp_tools = await server.mcp.get_tools()
-    registered_tool_names = set(
-        registered_mcp_tools
-    )  # Corrected: get_tools() returns tool names (strings)
-
-    expected_tools = {
-        "paginate_results",
-        "collect_all_results",
-        "get_cancer_studies",
-        "get_cancer_types",
-        "get_samples_in_study",
-        "search_genes",
-        "search_studies",
-        "get_molecular_profiles",
-        "get_mutations_in_gene",
-        "get_clinical_data",
-        "get_study_details",
-        "get_multiple_studies",
-        "get_multiple_genes",
-        "get_genes",
-        "get_sample_list_id",
-    }
-
-    # Check that all expected tools are registered
-    assert expected_tools.issubset(registered_tool_names), (
-        f"Missing tools: {expected_tools - registered_tool_names}"
-    )
-
-    # Check that no unexpected tools (like private or lifecycle methods) are registered
-    # The _register_tools method already has an exclusion list.
-    # We can verify its effectiveness by checking against a few key exclusions.
-    excluded_methods = {
-        "startup",
-        "shutdown",
-        "_make_api_request",
-        "_register_tools",
-        "client",  # attribute
-        "mcp",  # attribute
-        "base_url",  # attribute
-    }
-
-    unexpectedly_registered = excluded_methods.intersection(registered_tool_names)
-    assert not unexpectedly_registered, (
-        f"Unexpectedly registered tools: {unexpectedly_registered}"
-    )
-
-    # Optional: Check if the number of registered tools exactly matches the expected count
-    # This helps catch if new methods were added to the class but not to the expected_tools list or vice-versa.
-    assert len(registered_tool_names) == len(expected_tools), (
-        f"Mismatch in tool count. Expected {len(expected_tools)}, got {len(registered_tool_names)}. \
-        Registered: {registered_tool_names}. Expected: {expected_tools}"
-    )
 
 
 # --- Tests for get_multiple_studies ---
@@ -706,63 +532,3 @@ async def test_get_multiple_genes_empty_list(
 
 
 # More tests for get_multiple_genes will go here
-
-# --- New Tests for Lifecycle Management ---
-
-
-@pytest.mark.asyncio
-async def test_server_startup_initializes_async_client(
-    cbioportal_server_instance_unstarted,
-):
-    """Test that server.startup() initializes an httpx.AsyncClient."""
-    server = cbioportal_server_instance_unstarted
-    assert server.client is None, "Client should be None before startup"
-
-    await server.startup()
-
-    assert isinstance(server.client, httpx.AsyncClient), (
-        "Client should be an httpx.AsyncClient after startup"
-    )
-    # Optionally, check default timeout if it's critical
-    assert server.client.timeout.read == 30.0
-    # Clean up the client created during this test if it's not handled by a fixture
-    if server.client:
-        await server.client.aclose()
-
-
-@pytest.mark.asyncio
-async def test_server_shutdown_closes_async_client(
-    cbioportal_server_instance_unstarted,
-):
-    """Test that server.shutdown() calls aclose() on the httpx.AsyncClient."""
-    server = cbioportal_server_instance_unstarted
-
-    # Mock the client and its aclose method
-    mock_async_client = AsyncMock(spec=httpx.AsyncClient)
-    server.client = mock_async_client  # Assign the mock client
-
-    await server.shutdown()
-
-    mock_async_client.aclose.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_server_shutdown_handles_no_client(cbioportal_server_instance_unstarted):
-    """Test that server.shutdown() handles self.client being None gracefully."""
-    server = cbioportal_server_instance_unstarted
-    assert server.client is None  # Ensure client is None
-
-    try:
-        await server.shutdown()  # Should not raise an error
-    except Exception as e:
-        pytest.fail(f"server.shutdown() raised an exception with no client: {e}")
-
-
-@pytest.mark.asyncio
-async def test_initialization(cbioportal_server_instance_unstarted):
-    server = cbioportal_server_instance_unstarted
-    assert server.base_url == "http://mocked.cbioportal.org/api"
-    assert server.client is None
-    assert server.mcp is not None
-    registered_tools = await server.mcp.get_tools()  # Call the async get_tools() method
-    assert "get_cancer_studies" in registered_tools  # Check in the returned list

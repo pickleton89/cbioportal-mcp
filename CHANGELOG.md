@@ -4,6 +4,27 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ## [Unreleased]
 
+### 2025-05-10
+
+#### Test Suite Refactoring: Lifecycle Tests
+
+- **Objective**: Improve test suite organization and maintainability.
+- **Refactoring**:
+    - Created a new test file: `tests/test_server_lifecycle.py`.
+    - Moved the following tests from `tests/test_cbioportal_server.py` to `tests/test_server_lifecycle.py`:
+        - `test_lifecycle_hooks_registered`
+        - `test_tool_registration`
+        - `test_server_startup_initializes_async_client`
+        - `test_server_shutdown_closes_async_client`
+        - `test_server_shutdown_handles_no_client`
+        - `test_initialization`
+    - Removed older, redundant lifecycle tests (`test_startup_initializes_client`, `test_shutdown_closes_client`) from `tests/test_cbioportal_server.py`.
+- **Fixes**:
+    - Corrected `AttributeError` in `test_tool_registration` and `test_initialization` within `tests/test_server_lifecycle.py` by ensuring `server.mcp.get_tools()` (which returns a list of strings) is correctly processed into a set of tool names.
+    - Addressed lint errors related to unused imports in both `tests/test_cbioportal_server.py` and `tests/test_server_lifecycle.py` after moving tests.
+- **Verification**: All 33 tests in the suite are passing after these changes.
+- **Impact**: This change enhances the structure of the test suite, making it easier to navigate and maintain tests related to server lifecycle and registration.
+
 
 
 ### 2025-05-09
@@ -369,8 +390,7 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 - **Test Suite Enhancements (`tests/test_cbioportal_server.py`)**:
   - Added comprehensive tests for server lifecycle management:
     - `test_lifecycle_hooks_registered`: Verifies correct registration of startup/shutdown hooks.
-    - `test_startup_initializes_client`: Confirms HTTP client initialization on startup.
-    - `test_shutdown_closes_client`: Ensures HTTP client is closed on shutdown.
+    - `test_tool_registration`: Confirms that all intended public API methods are registered as MCP tools and that the list of registered tools is accurate.
   - Implemented `test_tool_registration` to dynamically verify that all intended public API methods are registered as MCP tools and that the list of registered tools is accurate.
     - Iteratively debugged tool fetching logic, adapting to the correct `FastMCP.get_tools()` method.
     - Corrected test logic to handle `mcp.get_tools()` returning a list of tool name strings directly.

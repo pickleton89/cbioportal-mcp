@@ -86,3 +86,60 @@ def mock_clinical_data_data():
             clinical_data[idx]["attributeId"] = "SEX"
             clinical_data[idx]["value"] = "Female" if idx % 2 == 0 else "Male"
     return clinical_data
+
+@pytest.fixture
+def mock_study_data():
+    """Mock data for a single study."""
+    return {
+        "studyId": "study_1",
+        "name": "Test Study",
+        "description": "A study for testing",
+        "publicStudy": True,
+        "cancerTypeId": "mixed",
+    }
+
+@pytest.fixture
+def mock_gene_data():
+    """Mock data for a single gene."""
+    return {"entrezGeneId": 672, "hugoGeneSymbol": "BRCA1", "type": "protein-coding"}
+
+@pytest.fixture
+def mock_study_detail_brca():
+    return {
+        "studyId": "brca_tcga",
+        "name": "BRCA TCGA",
+        "description": "Breast Cancer TCGA",
+    }
+
+@pytest.fixture
+def mock_study_detail_luad():
+    return {
+        "studyId": "luad_tcga",
+        "name": "LUAD TCGA",
+        "description": "Lung Adenocarcinoma TCGA",
+    }
+
+@pytest.fixture
+def mock_gene_detail_tp53():
+    return {"entrezGeneId": 7157, "hugoGeneSymbol": "TP53", "type": "protein-coding"}
+
+@pytest.fixture
+def mock_gene_detail_brca1():
+    return {"entrezGeneId": 672, "hugoGeneSymbol": "BRCA1", "type": "protein-coding"}
+
+@pytest.fixture
+def mock_gene_batch_response_page1():
+    return [
+        {"entrezGeneId": 7157, "hugoGeneSymbol": "TP53", "type": "protein-coding"},
+        {"entrezGeneId": 672, "hugoGeneSymbol": "BRCA1", "type": "protein-coding"},
+    ]
+
+@pytest.fixture
+async def cbioportal_server_instance_unstarted():
+    """Provides a CBioPortalMCPServer instance without calling startup/shutdown."""
+    # Ensure CBioPortalMCPServer is imported; it should be from the top of conftest.py
+    server = CBioPortalMCPServer(base_url="http://mocked.cbioportal.org/api")
+    yield server
+    # No automatic startup/shutdown here, tests will manage if needed.
+    # If a test using this fixture calls server.startup(), it should handle shutdown if necessary,
+    # or rely on test isolation if client state doesn't persist or conflict.
