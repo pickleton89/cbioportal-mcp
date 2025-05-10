@@ -17,12 +17,28 @@ class CBioPortalMCPServer:
     """
     def __init__(self, base_url: str = "https://www.cbioportal.org/api"):
         self.base_url = base_url
+        self.client = None  # Will be initialized in startup
         self.mcp = FastMCP(
             name="cBioPortal",
             description="Access cancer genomics data from cBioPortal",
             instructions="This server provides tools to access and analyze cancer genomics data from cBioPortal.",
         )
         self._register_tools()
+        # Register lifecycle hooks
+        self.mcp.on_startup(self.startup)
+        self.mcp.on_shutdown(self.shutdown)
+        
+    async def startup(self):
+        """Initialize async resources when server starts."""
+        self.client = httpx.AsyncClient(timeout=30.0)
+        print("cBioPortal MCP Server started with async HTTP client")
+        
+    async def shutdown(self):
+        """Clean up async resources when server shuts down."""
+        if self.client:
+            await self.client.aclose()
+            print("cBioPortal MCP Server async HTTP client closed")
+
 
     def _register_tools(self):
         self.mcp.tool()(self.get_cancer_studies)

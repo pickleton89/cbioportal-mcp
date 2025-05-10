@@ -198,6 +198,12 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Added `asyncio` import for asynchronous programming capabilities
   - This change is the foundation for converting synchronous API calls to asynchronous
 
+- **Step 2: Create Async Client Manager**:
+  - Implemented async lifecycle management with `startup` and `shutdown` hooks
+  - Added `httpx.AsyncClient` initialization in the startup process
+  - Configured proper client cleanup on server shutdown
+  - Registered FastMCP lifecycle hooks using `mcp.on_startup` and `mcp.on_shutdown`
+
 
 
   #### Next Steps
