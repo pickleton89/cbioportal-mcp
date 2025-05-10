@@ -7,7 +7,8 @@ Provides Model Context Protocol tools for accessing the cBioPortal API with full
 import argparse
 from typing import Any, Dict, List, Optional
 
-import requests
+import httpx
+import asyncio
 from fastmcp import FastMCP
 
 class CBioPortalMCPServer:

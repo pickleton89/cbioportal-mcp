@@ -187,7 +187,20 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Verified correct API endpoint usage for all methods
   - Ensured the `has_more` flag correctly indicates when additional pages of data might be available
 
-#### Next Steps
+
+
+### 2025-05-09 (17:43)
+
+#### Async Implementation for Performance Enhancement
+
+- **Step 1: Replace HTTP Client**:
+  - Replaced `requests` with `httpx` for async HTTP support
+  - Added `asyncio` import for asynchronous programming capabilities
+  - This change is the foundation for converting synchronous API calls to asynchronous
+
+
+
+  #### Next Steps
 
 - The cBioPortal MCP server is now fully implemented with proper pagination support across all endpoints
 - Further enhancements could include more extensive error handling and additional performance optimizations
