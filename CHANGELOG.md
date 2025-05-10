@@ -343,3 +343,15 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Add configuration options for controlling concurrency limits and timeout settings
   - Develop more comprehensive benchmarking and performance monitoring tools
   - Consider caching frequently requested data to further improve performance
+
+### 2025-05-10 (10:23)
+
+#### Test Suite Modernization & Fixes
+- Corrected `has_more` pagination logic in `cbioportal_server.py` for `get_cancer_studies` and `get_cancer_types` methods to accurately reflect API response behavior (using `== page_size` instead of `>= page_size`).
+- Significantly refactored `tests/test_pagination.py`:
+  - Aligned test method calls and parameters with actual server method signatures (e.g., `get_mutations_in_gene`, `get_clinical_data`, `get_molecular_profiles`).
+  - Updated mock API request assertions to match corrected server logic and method calls.
+  - Addressed `AttributeError` and `TypeError` issues by fixing method names, parameters, and mock setups.
+  - Skipped tests (`test_get_all_clinical_attributes_pagination`, `test_get_genes_pagination`) for server methods that do not exist or have different designs than assumed by the original tests.
+  - Ensured `mock_api_request` is correctly patched for all relevant tests.
+- Impact: The pagination tests in `tests/test_pagination.py` are now passing or appropriately skipped, leading to a more reliable test suite.

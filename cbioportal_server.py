@@ -95,7 +95,7 @@ class CBioPortalMCPServer:
             yield results
 
             # Check if we have more pages
-            has_more = len(results) >= page_size
+            has_more = len(results) == page_size
 
             # Increment counters
             page += 1
@@ -271,7 +271,7 @@ class CBioPortalMCPServer:
                     studies_for_response = studies_from_api[:limit]
 
                 # Determine if there might be more data available
-                has_more = len(studies_from_api) >= page_size
+                has_more = len(studies_from_api) == page_size
 
             # Count the actual items we're returning
             total_items = len(studies_for_response)
@@ -339,7 +339,7 @@ class CBioPortalMCPServer:
                     types_for_response = types_from_api[:limit]
 
                 # Determine if there might be more data available
-                has_more = len(types_from_api) >= page_size
+                has_more = len(types_from_api) == page_size
 
             # Count the actual items we're returning
             total_items = len(types_for_response)
