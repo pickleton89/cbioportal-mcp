@@ -5,20 +5,23 @@ Provides Model Context Protocol tools for accessing the cBioPortal API with full
 """
 
 import argparse
+import asyncio
 import logging
 import signal
 import sys
 from typing import Any, Dict, List, Optional, AsyncGenerator
 
 import httpx
-import asyncio
 from fastmcp import FastMCP
 
+# Ensure project root is in sys.path for utility imports if needed
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# from utils.pagination_utils import paginate_results, collect_all_results # Example if utils were used
+
+logger = logging.getLogger(__name__)
 
 class CBioPortalMCPServer:
-    """
-    An MCP server that interfaces with the cBioPortal API using FastMCP.
-    """
+    """MCP Server for interacting with the cBioPortal API."""
 
     def __init__(self, base_url: str = "https://www.cbioportal.org/api"):
         self.base_url = base_url
@@ -28,8 +31,10 @@ class CBioPortalMCPServer:
             description="Access cancer genomics data from cBioPortal",
             instructions="This server provides tools to access and analyze cancer genomics data from cBioPortal.",
         )
-        # Initialize resources
-        self.client = httpx.AsyncClient(timeout=30.0)
+
+        # Register lifecycle hooks
+        self.mcp.on_startup = [self.startup]  
+        self.mcp.on_shutdown = [self.shutdown] 
 
         # Register tools
         self._register_tools()
@@ -37,13 +42,28 @@ class CBioPortalMCPServer:
     async def startup(self):
         """Initialize async resources when server starts."""
         self.client = httpx.AsyncClient(timeout=30.0)
-        print("cBioPortal MCP Server started with async HTTP client")
+        logger.info("cBioPortal MCP Server started with async HTTP client")
 
     async def shutdown(self):
         """Clean up async resources when server shuts down."""
         if self.client:
             await self.client.aclose()
-            print("cBioPortal MCP Server async HTTP client closed")
+            logger.info("cBioPortal MCP Server async HTTP client closed")
+
+    def _register_tools(self):
+        """Dynamically register public methods as MCP tools."""
+        for name in dir(self):
+            if not name.startswith("_") and name not in [
+                "startup",
+                "shutdown",
+                "mcp",
+                "client",
+                "base_url",
+            ]:
+                method = getattr(self, name)
+                if callable(method):
+                    self.mcp.add_tool(method)
+                    logger.debug(f"Registered tool: {name}")
 
     async def paginate_results(
         self,
@@ -137,60 +157,6 @@ class CBioPortalMCPServer:
                 break
 
         return all_results
-
-    def _register_tools(self):
-        """
-        Register all methods as MCP tools.
-
-        FastMCP automatically detects async methods and handles them correctly.
-        When an async method is called through the MCP interface, FastMCP will:
-        1. Run the method in the event loop
-        2. Await the result
-        3. Return the result to the client
-
-        This makes the async implementation completely transparent to MCP clients.
-        """
-        # Data retrieval tools
-        self.mcp.tool(description="Get cancer studies with pagination support")(
-            self.get_cancer_studies
-        )
-        self.mcp.tool(description="Get cancer types with pagination support")(
-            self.get_cancer_types
-        )
-        self.mcp.tool(description="Get detailed information about a specific study")(
-            self.get_study_details
-        )
-        self.mcp.tool(description="Get samples in a study with pagination support")(
-            self.get_samples_in_study
-        )
-        self.mcp.tool(description="Get information about specific genes")(
-            self.get_genes
-        )
-        self.mcp.tool(
-            description="Search for genes by keyword with pagination support"
-        )(self.search_genes)
-
-        # Molecular data tools
-        self.mcp.tool(description="Get mutations in a gene with pagination support")(
-            self.get_mutations_in_gene
-        )
-        self.mcp.tool(description="Get clinical data with pagination support")(
-            self.get_clinical_data
-        )
-        self.mcp.tool(description="Get molecular profiles with pagination support")(
-            self.get_molecular_profiles
-        )
-        self.mcp.tool(
-            description="Search for studies by keyword with pagination support"
-        )(self.search_studies)
-
-        # Concurrent bulk operations
-        self.mcp.tool(
-            description="Get multiple studies concurrently for better performance"
-        )(self.get_multiple_studies)
-        self.mcp.tool(
-            description="Get multiple genes concurrently with automatic batching"
-        )(self.get_multiple_genes)
 
     async def _make_api_request(
         self,
@@ -987,114 +953,83 @@ class CBioPortalMCPServer:
         except Exception as e:
             return {"error": f"Failed to get gene information: {str(e)}"}
 
-    def run(self, transport: str = "stdio", log_level: str = "INFO"):
-        """Run the cBioPortal MCP server with the specified transport.
+    async def get_sample_list_id(self, study_id: str, sample_list_id: str) -> Dict:
+        return await self._make_api_request(f"studies/{study_id}/sample_lists/{sample_list_id}")
 
-        The FastMCP run method automatically handles the async lifecycle for us.
-
-        Args:
-            transport: Transport mechanism for the server (e.g., 'stdio')
-            log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
-        """
-        # Configure logging
-        numeric_level = getattr(logging, log_level.upper(), logging.INFO)
-        logging.basicConfig(
-            level=numeric_level,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            handlers=[logging.StreamHandler(sys.stderr)],
-        )
-
-        # Log startup information
-        logger = logging.getLogger("cbioportal_mcp")
-        logger.info(
-            f"Starting cBioPortal MCP Server with async support (API: {self.base_url})"
-        )
-
-        # Register lifecycle hooks directly on the FastMCP instance
-        self.mcp.on_startup = self.startup
-        self.mcp.on_shutdown = self.shutdown
-
-        if transport.lower() == "stdio":
-            # FastMCP will properly handle our async lifecycle
-            self.mcp.run()
-        else:
-            raise ValueError(
-                f"Unsupported transport: {transport}. Currently only 'stdio' is supported."
-            )
-
+def handle_signal(signum, frame):
+    logger.info(f"Signal {signum} received, initiating shutdown...")
+    # Note: Actual shutdown logic might need to be coordinated with asyncio loop
+    # For simplicity, we'll exit. FastMCP's run might handle this more gracefully.
+    sys.exit(0)
 
 def setup_signal_handlers():
-    """Set up signal handlers for graceful shutdown."""
-
-    def handle_signal(sig, frame):
-        logging.getLogger("cbioportal_mcp").info(
-            f"Received signal {sig}, shutting down..."
-        )
-        sys.exit(0)
-
-    # Register signal handlers
     signal.signal(signal.SIGINT, handle_signal)  # Handle Ctrl+C
     signal.signal(signal.SIGTERM, handle_signal)  # Handle termination
 
-
-def main():
-    """Entry point for the cBioPortal MCP server.
-
-    Parses command line arguments and starts the server.
-    FastMCP handles the async event loop setup internally.
-    """
-    parser = argparse.ArgumentParser(
-        description="cBioPortal MCP Server with Async Support"
-    )
+async def main():
+    parser = argparse.ArgumentParser(description="Run the cBioPortal MCP Server.")
     parser.add_argument(
         "--base-url",
-        type=str,
         default="https://www.cbioportal.org/api",
-        help="Base URL for the cBioPortal API",
+        help="Base URL for the cBioPortal API.",
     )
     parser.add_argument(
         "--transport",
-        type=str,
         default="stdio",
-        choices=["stdio"],
-        help="Transport mechanism for the MCP server (e.g., 'stdio')",
+        choices=["stdio"], # Limiting to stdio for now to simplify
+        help="Transport protocol for MCP communication (currently only 'stdio' supported).",
     )
+    # parser.add_argument(
+    #     "--port",
+    #     type=int,
+    #     default=8000,
+    #     help="Port for WebSocket transport (if used)."
+    # )
     parser.add_argument(
-        "--log-level",
-        type=str,
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        help="Logging level",
+        '--log-level', 
+        default='INFO', 
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Set the logging level.'
     )
+
     args = parser.parse_args()
 
-    # Setup signal handlers for graceful shutdown
-    setup_signal_handlers()
-
     # Configure logging
-    numeric_level = getattr(logging, args.log_level.upper(), logging.INFO)
     logging.basicConfig(
-        level=numeric_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler(sys.stderr)],
+        level=args.log_level.upper(), 
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[logging.StreamHandler(sys.stderr)] # Ensure logs go to stderr
     )
+    global logger # Use global logger after basicConfig is set
+    logger = logging.getLogger(__name__) # Re-assign to get logger with new config
 
-    logger = logging.getLogger("cbioportal_mcp")
-    logger.info("Initializing cBioPortal MCP Server with async support")
+    setup_signal_handlers() # Setup signal handlers for graceful shutdown
 
-    # Create and run the server (FastMCP handles the async event loop)
-    server = CBioPortalMCPServer(base_url=args.base_url)
-    try:
-        # Let FastMCP handle the event loop internally
-        server.run(transport=args.transport, log_level=args.log_level)
-    except KeyboardInterrupt:
-        logger.info("Server stopped by user")
-    except Exception as e:
-        logger.error(f"An error occurred during server execution: {str(e)}")
+    server_instance = CBioPortalMCPServer(base_url=args.base_url)
+
+    logger.info(f"Starting cBioPortal MCP Server with transport: {args.transport}")
+
+    if args.transport.lower() == "stdio":
+        try:
+            await server_instance.mcp.run(sys.stdin.buffer, sys.stdout.buffer)
+        except KeyboardInterrupt:
+            logger.info("Server interrupted by user (KeyboardInterrupt).")
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during server execution: {e}", exc_info=True)
+        finally:
+            logger.info("Server shutdown sequence initiated from main.")
+            # Explicitly call shutdown hooks if not handled by mcp.run() on exit/error
+            # However, FastMCP's run is expected to handle its registered on_shutdown hooks.
+            # If self.mcp.on_shutdown are not run automatically by mcp.run() upon KeyboardInterrupt
+            # or other exceptions, they might need to be manually triggered here.
+            # For now, assuming FastMCP handles it.
+    else:
+        logger.error(f"Unsupported transport: {args.transport}")
         sys.exit(1)
-
+    
+    logger.info("cBioPortal MCP Server has shut down.")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
 
 # End of file

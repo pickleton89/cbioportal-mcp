@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # Tests for basic functionality of the cBioPortal MCP Server
 
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 import sys
 import os
 import pytest
+import httpx
 
 # Add the parent directory to the path so we can import the cbioportal_server module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -101,3 +102,43 @@ def test_api_url_configuration():
     custom_url = "https://custom-cbioportal.example.org/api"
     server_custom = CBioPortalMCPServer(base_url=custom_url)
     assert server_custom.base_url == custom_url
+
+def test_lifecycle_hooks_registered(cbioportal_server_instance):
+    """Test that startup and shutdown hooks are correctly registered with FastMCP."""
+    server = cbioportal_server_instance
+    assert server.mcp.on_startup == [server.startup]
+    assert server.mcp.on_shutdown == [server.shutdown]
+
+@pytest.mark.asyncio
+async def test_startup_initializes_client(cbioportal_server_instance):
+    """Test that the startup method initializes the httpx.AsyncClient."""
+    server = cbioportal_server_instance
+    assert server.client is None  # Check initial state before startup
+
+    await server.startup()
+
+    assert isinstance(server.client, httpx.AsyncClient)
+    assert not server.client.is_closed
+    
+    # Cleanup: ensure client is closed after test
+    await server.shutdown()
+
+@pytest.mark.asyncio
+async def test_shutdown_closes_client(cbioportal_server_instance):
+    """Test that the shutdown method closes the httpx.AsyncClient."""
+    server = cbioportal_server_instance
+    
+    # First, run startup to initialize the client
+    await server.startup()
+    assert server.client is not None, "Client should be initialized by startup"
+    
+    # Mock the aclose method of the actual client instance
+    # This ensures we are testing the shutdown behavior on an active client
+    client_to_close = server.client
+    client_to_close.aclose = AsyncMock() 
+
+    await server.shutdown()
+    
+    client_to_close.aclose.assert_called_once()
+    # Note: server.client itself is not set to None by the current shutdown(), which is acceptable.
+    # The main thing is that aclose() was called on the active client.

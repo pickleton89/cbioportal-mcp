@@ -325,6 +325,16 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 #### Test Code Refinement
 - Refactored `test_get_cancer_studies_pagination` in `tests/test_pagination.py` to use `pytest.mark.parametrize`. This consolidates multiple test scenarios into a single, data-driven test function, improving conciseness and maintainability.
 
+#### Server Core & Lifecycle Management
+- Corrected `CBioPortalMCPServer.__init__` to defer `httpx.AsyncClient` initialization to the `startup` method, preventing redundant client creation.
+- Ensured `startup` and `shutdown` methods are correctly assigned to `FastMCP` instance's `on_startup` and `on_shutdown` lifecycle hooks.
+- Added tests to `tests/test_cbioportal_server.py` to verify:
+  - Correct registration of `startup` and `shutdown` lifecycle hooks.
+  - `startup` method initializes `httpx.AsyncClient` as expected.
+  - `shutdown` method calls `aclose()` on the active client.
+- Refined `main()` function in `cbioportal_server.py` for clarity and robust `stdio` transport handling, removing prior experimental WebSocket code and addressing associated lint errors.
+- Fixed various import-related lint issues in `cbioportal_server.py`.
+
 #### Test Suite Modernization
 
 - **Initiated `pytest` Migration**:
