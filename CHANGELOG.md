@@ -390,6 +390,13 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Fixed by passing `request_params.copy()` to `_make_api_request`, ensuring each call receives a distinct snapshot of parameters.
 - **Impact**: Improved test coverage for the core pagination logic, leading to increased confidence in data retrieval. The bug fix ensures test accuracy for methods relying on `paginate_results`.
 
+#### Test Suite Cleanup (11:11)
+
+- **Removed Obsolete Skipped Tests (`tests/test_pagination.py`)**:
+  - Deleted `test_get_all_clinical_attributes_pagination`: This test was skipped because the corresponding server method for fetching all global clinical attributes does not exist.
+  - Deleted `test_get_genes_pagination`: This test was skipped because the server's `get_genes` method is designed for fetching specific gene IDs, not for paginated listing of all genes.
+- **Impact**: Streamlined the test suite by removing tests for non-existent or inapplicable functionality, improving clarity and focus.
+
 #### Next Steps
 
 - The cBioPortal MCP server now features full async support with significant performance improvements

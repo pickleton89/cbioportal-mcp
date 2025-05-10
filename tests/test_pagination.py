@@ -327,22 +327,6 @@ async def test_get_clinical_data_pagination(
     )
 
 
-@pytest.mark.skip(reason="Server method for global clinical attributes not found")
-@pytest.mark.asyncio
-async def test_get_all_clinical_attributes_pagination(
-    cbioportal_server_instance, mock_api_request, mock_clinical_attributes_data_page_1
-):
-    pass
-
-
-@pytest.mark.skip(reason="Server's get_genes is for specific IDs, not paginated listing")
-@pytest.mark.asyncio
-async def test_get_genes_pagination(
-    cbioportal_server_instance, mock_api_request, mock_genes_data_page_1
-):
-    pass
-
-
 @pytest.mark.asyncio
 @patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
 async def test_get_molecular_profiles_pagination(
