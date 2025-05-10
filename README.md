@@ -142,15 +142,15 @@ python cbioportal_server.py --transport stdio
 {
   "mcpServers": {
     "cbioportal": {
-      "command": "python",
-      "args": ["/path/to/cbioportal_server.py"],
+      "command": "/Users/jeffkiefer/Documents/projects/cbioportal_MCP/.venv/bin/python3",
+      "args": ["/Users/jeffkiefer/Documents/projects/cbioportal_MCP/cbioportal_server.py"],
       "env": {}
     }
   }
 }
 ```
 
-Replace `/path/to/cbioportal_server.py` with the actual path to your script.
+**Note:** Make sure to replace the paths with the actual paths to your Python executable and server script. The `command` field should point to the Python executable in your virtual environment (e.g., `.venv/bin/python3`), and the first element of the `args` array should be the path to the `cbioportal_server.py` script. If you encounter an `ENOTDIR` error, ensure that the `command` field is correctly set to the Python executable and not a directory.
 
 ### Using with VS Code
 
