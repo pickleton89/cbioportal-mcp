@@ -144,7 +144,6 @@ class CBioPortalMCPServer:
         
         # Molecular data tools
         self.mcp.tool(description="Get mutations in a gene with pagination support")(self.get_mutations_in_gene)
-        self.mcp.tool(description="Get mutations by gene and study")(self.get_mutations_by_gene_and_study)
         self.mcp.tool(description="Get clinical data with pagination support")(self.get_clinical_data)
         self.mcp.tool(description="Get molecular profiles with pagination support")(self.get_molecular_profiles)
         self.mcp.tool(description="Search for studies by keyword with pagination support")(self.search_studies)
