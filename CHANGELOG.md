@@ -204,6 +204,12 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Configured proper client cleanup on server shutdown
   - Registered FastMCP lifecycle hooks using `mcp.on_startup` and `mcp.on_shutdown`
 
+- **Step 3: Convert API Methods to Async**:
+  - Transformed `_make_api_request` helper method to async with proper error handling
+  - Converted `get_cancer_studies` method to use async/await pattern
+  - Added await keyword to API calls where needed
+  - Maintained the same method signature and response structure for compatibility
+
 
 
   #### Next Steps

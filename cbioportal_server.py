@@ -52,13 +52,14 @@ class CBioPortalMCPServer:
         self.mcp.tool()(self.get_molecular_profiles)
         self.mcp.tool()(self.search_studies)
 
-    def _make_api_request(self, endpoint: str, method: str = "GET", params: Optional[Dict[str, Any]] = None, json_data: Optional[Any] = None) -> Any:
+    async def _make_api_request(self, endpoint: str, method: str = "GET", params: Optional[Dict[str, Any]] = None, json_data: Optional[Any] = None) -> Any:
+        """Make an asynchronous API request to the cBioPortal API."""
         url = f"{self.base_url}/{endpoint}"
         try:
             if method.upper() == "GET":
-                response = requests.get(url, params=params)
+                response = await self.client.get(url, params=params)
             elif method.upper() == "POST":
-                response = requests.post(url, json=json_data, params=params)
+                response = await self.client.post(url, json=json_data, params=params)
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
             response.raise_for_status()
@@ -73,7 +74,7 @@ class CBioPortalMCPServer:
 
     # --- Collection-returning methods with pagination ---
 
-    def get_cancer_studies(self, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
+    async def get_cancer_studies(self, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
         """
         Get a list of cancer studies in cBioPortal with pagination support.
         """
@@ -85,7 +86,7 @@ class CBioPortalMCPServer:
                 api_call_params["pageSize"] = 10000000
             # If limit is non-zero, api_call_params["pageSize"] remains the original page_size for the API call.
             
-            studies_from_api = self._make_api_request("studies", params=api_call_params)
+            studies_from_api = await self._make_api_request("studies", params=api_call_params)
 
             # Determine if the API might have more data
             api_might_have_more = len(studies_from_api) == api_call_params["pageSize"]
