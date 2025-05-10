@@ -710,8 +710,7 @@ class CBioPortalMCPServer:
     def run(self, transport: str = "stdio", log_level: str = "INFO"):
         """Run the cBioPortal MCP server with the specified transport.
         
-        The FastMCP run method automatically handles the async lifecycle for us,
-        including calling our startup and shutdown hooks.
+        The FastMCP run method automatically handles the async lifecycle for us.
         
         Args:
             transport: Transport mechanism for the server (e.g., 'stdio')
@@ -731,9 +730,13 @@ class CBioPortalMCPServer:
         logger = logging.getLogger("cbioportal_mcp")
         logger.info(f"Starting cBioPortal MCP Server with async support (API: {self.base_url})")
         
+        # Register lifecycle hooks directly on the FastMCP instance
+        self.mcp.on_startup = self.startup
+        self.mcp.on_shutdown = self.shutdown
+        
         if transport.lower() == "stdio":
             # FastMCP will properly handle our async lifecycle
-            self.mcp.run(on_startup=self.startup, on_shutdown=self.shutdown)
+            self.mcp.run()
         else:
             raise ValueError(f"Unsupported transport: {transport}. Currently only 'stdio' is supported.")
 
