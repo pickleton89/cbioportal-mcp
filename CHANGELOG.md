@@ -4,6 +4,32 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ## [Unreleased]
 
+### 2025-05-10
+
+#### Async Implementation Completion
+
+- **Fixed Async Methods and Tests**:
+  - Completed the transition to fully async implementation, fixing the remaining issues with coroutines and tests
+  - Added `await` to the second API call in `get_mutations_in_gene` method to ensure proper handling of asynchronous operations
+  - Converted `get_clinical_data` method to be async and added `await` to its API calls
+  - Updated all tests to properly handle async functions using `asyncio.run()`
+  - Fixed tests that were getting stuck in infinite loops by improving async mock handling
+  - Fixed all remaining test failures with proper async mocking patterns
+
+- **Test Suite Results**:
+  - All 15 tests now pass successfully
+  - Fixed specific test issues in:
+    - `test_get_mutations_in_gene_pagination`
+    - `test_get_mutations_in_gene_with_sort_and_limit`
+    - `test_get_clinical_data_pagination`
+    - `test_get_clinical_data_with_sort_and_limit`
+    - `test_get_all_results`
+
+- **Code Quality**:
+  - Improved mock setup for async methods using async side_effect functions
+  - Standardized approach to testing asynchronous API methods
+  - Eliminated coroutine handling errors and RuntimeWarnings
+
 ### 2025-05-09
 
 #### Session Summary (2025-05-09 13:52)
