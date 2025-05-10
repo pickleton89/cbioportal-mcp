@@ -5,6 +5,9 @@ Provides Model Context Protocol tools for accessing the cBioPortal API with full
 """
 
 import argparse
+import logging
+import signal
+import sys
 from typing import Any, Dict, List, Optional, AsyncGenerator
 
 import httpx
@@ -542,17 +545,45 @@ class CBioPortalMCPServer:
         except Exception as e:
             return {"error": "Failed to get gene information: " + str(e)}
 
-    async def run(self, transport: str = "stdio"):
+    async def run(self, transport: str = "stdio", log_level: str = "INFO"):
         """Run the cBioPortal MCP server with the specified transport.
         
         The FastMCP run method automatically handles the async lifecycle for us,
         including calling our startup and shutdown hooks.
+        
+        Args:
+            transport: Transport mechanism for the server (e.g., 'stdio')
+            log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
         """
+        # Configure logging
+        numeric_level = getattr(logging, log_level.upper(), logging.INFO)
+        logging.basicConfig(
+            level=numeric_level,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            handlers=[
+                logging.StreamHandler(sys.stderr)
+            ]
+        )
+        
+        # Log startup information
+        logger = logging.getLogger("cbioportal_mcp")
+        logger.info(f"Starting cBioPortal MCP Server with async support (API: {self.base_url})")
+        
         if transport.lower() == "stdio":
             # FastMCP will properly handle our async lifecycle
             self.mcp.run()
         else:
             raise ValueError(f"Unsupported transport: {transport}. Currently only 'stdio' is supported.")
+
+def setup_signal_handlers():
+    """Set up signal handlers for graceful shutdown."""
+    def handle_signal(sig, frame):
+        logging.getLogger("cbioportal_mcp").info(f"Received signal {sig}, shutting down...")
+        sys.exit(0)
+        
+    # Register signal handlers
+    signal.signal(signal.SIGINT, handle_signal)  # Handle Ctrl+C
+    signal.signal(signal.SIGTERM, handle_signal)  # Handle termination
 
 def main():
     """Entry point for the cBioPortal MCP server.
@@ -566,14 +597,31 @@ def main():
     parser.add_argument("--log-level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"], help="Logging level")
     args = parser.parse_args()
     
+    # Setup signal handlers for graceful shutdown
+    setup_signal_handlers()
+    
+    # Configure logging
+    numeric_level = getattr(logging, args.log_level.upper(), logging.INFO)
+    logging.basicConfig(
+        level=numeric_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.StreamHandler(sys.stderr)
+        ]
+    )
+    
+    logger = logging.getLogger("cbioportal_mcp")
+    logger.info("Initializing cBioPortal MCP Server with async support")
+    
     # Create and run the server (FastMCP handles the async event loop)
     server = CBioPortalMCPServer(base_url=args.base_url)
     try:
-        server.run(transport=args.transport)
+        server.run(transport=args.transport, log_level=args.log_level)
     except KeyboardInterrupt:
-        print("\nServer stopped by user.", flush=True)
+        logger.info("Server stopped by user")
     except Exception as e:
-        print(f"An error occurred during server execution: {str(e)}", flush=True)
+        logger.error(f"An error occurred during server execution: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

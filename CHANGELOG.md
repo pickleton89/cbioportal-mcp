@@ -217,6 +217,13 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Made `run` method async to support full async lifecycle
   - Updated main function with better documentation and enhanced CLI options
 
+- **Step 5: Update Run Logic**:
+  - Added comprehensive logging system with configurable levels
+  - Implemented proper signal handling for graceful shutdowns
+  - Enhanced error reporting with structured logging
+  - Added startup and shutdown status reporting
+  - Improved CLI interface with better argument documentation
+
 
 
   #### Next Steps
