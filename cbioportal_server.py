@@ -920,6 +920,128 @@ class CBioPortalMCPServer:
                 "error": f"Failed to get clinical data for study {study_id}: {str(e)}"
             }
 
+    async def get_gene_panels_for_study(
+        self,
+        study_id: str,
+        page_number: int = 0,
+        page_size: int = 50, 
+        sort_by: Optional[str] = "genePanelId", 
+        direction: str = "ASC", 
+        limit: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Get all gene panels in a specific study with pagination support.
+
+        Args:
+            study_id: The ID of the cancer study (e.g., "acc_tcga").
+            page_number: Page number to retrieve (0-based).
+            page_size: Number of items per page.
+            sort_by: Field to sort by (e.g., "genePanelId").
+            direction: Sort direction ("ASC" or "DESC").
+            limit: Optional maximum number of gene panels to return. If None, fetches all available based on page_number and page_size for a single page, or all results if limit is used with collect_all_results.
+
+        Returns:
+            A list of gene panel objects, or an error dictionary.
+        """
+        if not study_id or not isinstance(study_id, str):
+            return {"error": "study_id must be a non-empty string"}
+        if not isinstance(page_number, int) or page_number < 0:
+            return {"error": "page_number must be a non-negative integer"}
+        if not isinstance(page_size, int) or page_size <= 0:
+            return {"error": "page_size must be a positive integer"}
+        if sort_by is not None and not isinstance(sort_by, str):
+            # Allow empty string for sort_by if API supports it, or check against valid fields
+            return {"error": "sort_by must be a string or None"}
+        if direction.upper() not in ["ASC", "DESC"]:
+            return {"error": "direction must be 'ASC' or 'DESC'"}
+        if limit is not None and (not isinstance(limit, int) or limit < 0):
+            # Allow limit=0 to mean no results, consistent with some APIs
+            return {"error": "limit must be a non-negative integer or None"}
+
+        endpoint = f"studies/{study_id}/gene-panels"
+        params = {
+            "pageNumber": page_number,
+            "pageSize": page_size,
+            "projection": "DETAILED", # Default to include genes in panels
+            "sortBy": sort_by,
+            "direction": direction.upper(),
+        }
+        # Remove None params, especially sortBy if not provided
+        params = {k: v for k, v in params.items() if v is not None}
+
+        try:
+            if limit is not None:
+                # collect_all_results handles pagination internally up to the limit
+                return await self.collect_all_results(endpoint, params=params, limit=limit)
+            else:
+                # Fetch a single page as defined by page_number and page_size
+                return await self._make_api_request(endpoint, params=params)
+        except httpx.HTTPStatusError as e:
+            logger.error(f"API error getting gene panels for study {study_id}: {e.response.status_code} - {e.response.text}")
+            return {"error": f"API error: {e.response.status_code}", "details": e.response.text}
+        except httpx.RequestError as e:
+            logger.error(f"Request error getting gene panels for study {study_id}: {e}")
+            return {"error": "Request error", "details": str(e)}
+        except Exception as e:
+            logger.error(f"Unexpected error getting gene panels for study {study_id}: {e}", exc_info=True)
+            return {"error": "Unexpected server error", "details": str(e)}
+
+    async def get_gene_panel_details(
+        self,
+        gene_panel_id: str,
+        projection: str = "DETAILED", 
+    ) -> Dict[str, Any]:
+        """
+        Get detailed information for a specific gene panel, including the list of genes.
+
+        Args:
+            gene_panel_id: The ID of the gene panel (e.g., "IMPACT341").
+            projection: Level of detail ("ID", "SUMMARY", "DETAILED", "META").
+                        "DETAILED" includes the list of genes.
+
+        Returns:
+            A dictionary containing gene panel details, or an error dictionary.
+        """
+        if not gene_panel_id or not isinstance(gene_panel_id, str):
+            return {"error": "gene_panel_id must be a non-empty string"}
+        if projection.upper() not in ["ID", "SUMMARY", "DETAILED", "META"]:
+            return {"error": "projection must be one of 'ID', 'SUMMARY', 'DETAILED', 'META'"}
+
+        endpoint = "gene-panels/fetch"
+        # API requires query param for projection, and POST body for IDs
+        params = {"projection": projection.upper()}
+        request_body = [gene_panel_id] # API expects a list of gene panel IDs
+
+        try:
+            results = await self._make_api_request(
+                endpoint,
+                method="POST",
+                params=params, 
+                json_data=request_body
+            )
+            
+            # The API returns a list, even for a single ID request
+            if isinstance(results, list):
+                if len(results) > 0:
+                    return results[0] # Return the first (and expected only) gene panel object
+                else:
+                    # Successfully queried, but no panel found for this ID
+                    return {"error": "Gene panel not found", "gene_panel_id": gene_panel_id}
+            else:
+                # This case implies an unexpected API response format (not a list)
+                logger.warning(f"Unexpected response format for get_gene_panel_details {gene_panel_id}: {type(results)}")
+                return {"error": "Unexpected response format from API", "details": str(results)}
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"API error getting gene panel details for {gene_panel_id}: {e.response.status_code} - {e.response.text}")
+            return {"error": f"API error: {e.response.status_code}", "details": e.response.text}
+        except httpx.RequestError as e:
+            logger.error(f"Request error getting gene panel details for {gene_panel_id}: {e}")
+            return {"error": "Request error", "details": str(e)}
+        except Exception as e:
+            logger.error(f"Unexpected error getting gene panel details for {gene_panel_id}: {e}", exc_info=True)
+            return {"error": "Unexpected server error", "details": str(e)}
+
     # --- Bulk Operations with Concurrency ---
 
     async def get_multiple_studies(self, study_ids: List[str]) -> Dict:

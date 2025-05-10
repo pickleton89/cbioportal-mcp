@@ -499,6 +499,19 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 - **Verification**: All 42 input validation tests are passing.
 - **Impact**: Significantly improves the reliability and error handling of the server by ensuring that API methods correctly validate their input parameters.
 
+### 2025-05-10 (16:09)
+
+#### Gene Panel Functionality
+
+- **New Server Methods Added**:
+  - Implemented `get_gene_panels_for_study`: Retrieves gene panels for a specified study with pagination and detailed projection by default.
+  - Implemented `get_gene_panel_details`: Fetches detailed information for a specific gene panel by its ID, including the list of genes (using detailed projection by default).
+- **Snapshot Tests for Gene Panels**:
+  - Added snapshot tests for `get_gene_panels_for_study`.
+  - Added snapshot tests for `get_gene_panel_details`.
+  - All 12 snapshot tests in `test_snapshot_responses.py` are now passing.
+- Impact: Enhanced the server's capability to provide gene panel information and ensured response consistency through snapshot testing.
+
 #### Next Steps
 
 - The cBioPortal MCP server now features full async support with significant performance improvements
@@ -508,3 +521,4 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Add configuration options for controlling concurrency limits and timeout settings
   - Develop more comprehensive benchmarking and performance monitoring tools
   - Consider caching frequently requested data to further improve performance
+

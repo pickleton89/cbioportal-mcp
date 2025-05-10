@@ -1,0 +1,218 @@
+# serializer version: 1
+# name: test_get_cancer_studies_snapshot
+  dict({
+    'error': "Failed to get cancer studies: API request to studies failed: 'NoneType' object has no attribute 'get'",
+  })
+# ---
+# name: test_get_cancer_types_snapshot
+  dict({
+    'error': "Failed to get cancer types: API request to cancer-types failed: 'NoneType' object has no attribute 'get'",
+  })
+# ---
+# name: test_get_clinical_data_snapshot
+  dict({
+    'clinical_data_by_patient': dict({
+      'TCGA-OR-A5J1': dict({
+        'AGE': '50',
+        'SEX': 'Female',
+      }),
+      'TCGA-OR-A5J2': dict({
+        'AGE': '65',
+        'SEX': 'Male',
+      }),
+      'TCGA-OR-A5J3': dict({
+        'AJCC_PATHOLOGIC_TUMOR_STAGE': 'STAGE I',
+      }),
+    }),
+    'pagination': dict({
+      'has_more': False,
+      'page': 0,
+      'page_size': 50,
+      'total_found': 3,
+    }),
+  })
+# ---
+# name: test_get_clinical_data_specific_attributes_snapshot
+  dict({
+    'clinical_data_by_patient': dict({
+      'TCGA-OR-A5J1': dict({
+        'AGE': '50',
+        'SEX': 'Female',
+      }),
+      'TCGA-OR-A5J2': dict({
+        'AGE': '65',
+        'SEX': 'Male',
+      }),
+    }),
+    'pagination': dict({
+      'has_more': False,
+      'page': 0,
+      'page_size': 50,
+      'total_found': 2,
+    }),
+  })
+# ---
+# name: test_get_gene_panel_details_snapshot
+  dict({
+    'description': '468 key cancer genes',
+    'genePanelId': 'IMPACT468',
+    'genes': list([
+      dict({
+        'entrezGeneId': 7157,
+        'hugoGeneSymbol': 'TP53',
+      }),
+      dict({
+        'entrezGeneId': 207,
+        'hugoGeneSymbol': 'AKT1',
+      }),
+      dict({
+        'entrezGeneId': 595,
+        'hugoGeneSymbol': 'CCND1',
+      }),
+    ]),
+    'name': 'MSK-IMPACT Clinical Sequencing Cohort (MSK, Cancer Cell 2015)',
+  })
+# ---
+# name: test_get_gene_panels_for_study_snapshot
+  list([
+    dict({
+      'description': '341 cancer-associated genes',
+      'genePanelId': 'IMPACT341',
+      'genes': list([
+        dict({
+          'entrezGeneId': 1,
+          'hugoGeneSymbol': 'GENE1',
+        }),
+        dict({
+          'entrezGeneId': 2,
+          'hugoGeneSymbol': 'GENE2',
+        }),
+      ]),
+      'name': 'MSK-IMPACT Clinical Sequencing Cohort (MSK, Nat Med 2017)',
+    }),
+    dict({
+      'description': 'Pediatric panel of genes',
+      'genePanelId': 'PEDS-IMPACT',
+      'genes': list([
+        dict({
+          'entrezGeneId': 3,
+          'hugoGeneSymbol': 'GENE3',
+        }),
+        dict({
+          'entrezGeneId': 4,
+          'hugoGeneSymbol': 'P53_MUTANT',
+        }),
+      ]),
+      'name': 'MSK-IMPACT Pediatric Panel',
+    }),
+  ])
+# ---
+# name: test_get_molecular_profiles_snapshot
+  dict({
+    'error': "Failed to get molecular profiles for acc_tcga: API request to studies/acc_tcga/molecular-profiles failed: 'NoneType' object has no attribute 'get'",
+  })
+# ---
+# name: test_get_mutations_in_gene_snapshot
+  dict({
+    'mutations': list([
+      dict({
+        'aminoAcidChange': 'R248W',
+        'chromosome': '17',
+        'endPosition': 7577538,
+        'entrezGeneId': 7157,
+        'hugoGeneSymbol': 'TP53',
+        'keyword': 'TP53 Missense_Mutation R248W',
+        'molecularProfileId': 'acc_tcga_mutations',
+        'mutationStatus': 'SOMATIC',
+        'mutationType': 'Missense_Mutation',
+        'patientId': 'TCGA-OR-A5J1',
+        'proteinPosEnd': 248,
+        'proteinPosStart': 248,
+        'referenceAllele': 'C',
+        'sampleId': 'TCGA-OR-A5J1-01',
+        'startPosition': 7577538,
+        'uniquePatientKey': 'TCGA-OR-A5J1:acc_tcga_mutations',
+        'uniqueSampleKey': 'TCGA-OR-A5J1-01:acc_tcga_mutations',
+        'variantAllele': 'T',
+      }),
+      dict({
+        'aminoAcidChange': 'Q136*',
+        'chromosome': '17',
+        'endPosition': 7578459,
+        'entrezGeneId': 7157,
+        'hugoGeneSymbol': 'TP53',
+        'keyword': 'TP53 Nonsense_Mutation Q136*',
+        'molecularProfileId': 'acc_tcga_mutations',
+        'mutationStatus': 'SOMATIC',
+        'mutationType': 'Nonsense_Mutation',
+        'patientId': 'TCGA-OR-A5J2',
+        'proteinPosEnd': 136,
+        'proteinPosStart': 136,
+        'referenceAllele': 'C',
+        'sampleId': 'TCGA-OR-A5J2-01',
+        'startPosition': 7578459,
+        'uniquePatientKey': 'TCGA-OR-A5J2:acc_tcga_mutations',
+        'uniqueSampleKey': 'TCGA-OR-A5J2-01:acc_tcga_mutations',
+        'variantAllele': 'T',
+      }),
+    ]),
+    'pagination': dict({
+      'has_more': False,
+      'page': 0,
+      'page_size': 50,
+      'total_found': 2,
+    }),
+  })
+# ---
+# name: test_get_samples_in_study_snapshot
+  dict({
+    'error': "Failed to get samples for study acc_tcga: API request to studies/acc_tcga/samples failed: 'NoneType' object has no attribute 'get'",
+  })
+# ---
+# name: test_get_study_details_snapshot
+  dict({
+    'study': dict({
+      'allSampleCount': 92,
+      'cancerType': dict({
+        'cancerTypeId': 'acc',
+        'dedicatedColor': 'LightGreen',
+        'name': 'Adrenocortical Carcinoma',
+        'parentCancerTypeId': 'adrenal_gland',
+        'shortName': 'ACC',
+      }),
+      'cancerTypeId': 'acc',
+      'citation': 'Cancer Genome Atlas Research Network. (2018). The Immune Landscape of Cancer. Immunity, 48(4).',
+      'cnaSampleCount': 90,
+      'description': 'TCGA PanCanAtlas ACC',
+      'groups': 'PANCANCER;PANCAN',
+      'importDate': '2018-04-10 00:00:00',
+      'massSpectrometrySampleCount': 0,
+      'methylationHm27SampleCount': 0,
+      'miRnaSampleCount': 0,
+      'mrnaMicroarraySampleCount': 0,
+      'mrnaRnaSeqSampleCount': 79,
+      'mrnaRnaSeqV2SampleCount': 0,
+      'name': 'Adrenocortical Carcinoma (TCGA, PanCancer Atlas)',
+      'numberOfSamplesWithCompleteSampleData': 90,
+      'pmid': '29622464',
+      'publicStudy': True,
+      'readPermission': True,
+      'referenceGenome': 'hg19',
+      'rppaSampleCount': 0,
+      'sequencedSampleCount': 90,
+      'status': 0,
+      'studyId': 'acc_tcga',
+      'svSampleCount': 0,
+    }),
+  })
+# ---
+# name: test_search_genes_snapshot
+  dict({
+    'error': "Failed to search genes: API request to genes failed: 'NoneType' object has no attribute 'get'",
+  })
+# ---
+# name: test_search_studies_snapshot
+  dict({
+    'error': "Failed to search studies for 'PanCancer': An unexpected error occurred - API request to studies failed: 'NoneType' object has no attribute 'get'",
+  })
+# ---
