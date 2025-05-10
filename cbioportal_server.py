@@ -795,7 +795,10 @@ class CBioPortalMCPServer:
             Dictionary mapping study IDs to their details, with metadata about the operation
         """
         if not study_ids:
-            return {"studies": {}, "metadata": {"count": 0, "errors": 0}}
+            return {
+                "studies": {},
+                "metadata": {"count": 0, "errors": 0, "concurrent": True},
+            }
 
         # Create a reusable async function for fetching a single study
         async def fetch_study(study_id):
@@ -854,7 +857,8 @@ class CBioPortalMCPServer:
             Dictionary with gene information and performance metadata
         """
         import time
-        start_time = time.time()
+
+        overall_start_time = time.time()  # Single start time for the whole operation
         if not gene_ids:
             return {
                 "genes": {},
@@ -864,7 +868,7 @@ class CBioPortalMCPServer:
                     "errors": 0,
                     "concurrent": True,
                     "batches": 0,
-                    "execution_time": time.time() - start_time,
+                    "execution_time": round(time.time() - overall_start_time, 3),
                 },
             }
 
@@ -888,9 +892,7 @@ class CBioPortalMCPServer:
 
         # Create tasks for all batches and run them concurrently
         tasks = [fetch_gene_batch(batch) for batch in gene_batches]
-        start_time = time.time()
         batch_results = await asyncio.gather(*tasks)
-        end_time = time.time()
 
         # Process results
         all_genes = []
@@ -904,10 +906,13 @@ class CBioPortalMCPServer:
 
         # Convert to dictionary for easier lookup
         genes_dict = {}
+        key_field = (
+            "hugoGeneSymbol" if gene_id_type == "HUGO_GENE_SYMBOL" else "entrezGeneId"
+        )
         for gene in all_genes:
-            gene_id = gene.get("entrezGeneId") or gene.get("hugoGeneSymbol")
-            if gene_id:
-                genes_dict[str(gene_id)] = gene
+            gene_key_value = gene.get(key_field)
+            if gene_key_value:
+                genes_dict[str(gene_key_value)] = gene
 
         return {
             "genes": genes_dict,
@@ -915,7 +920,7 @@ class CBioPortalMCPServer:
                 "count": len(genes_dict),
                 "total_requested": len(gene_ids),
                 "errors": error_count,
-                "execution_time": round(end_time - start_time, 3),
+                "execution_time": round(time.time() - overall_start_time, 3),
                 "concurrent": True,
                 "batches": len(gene_batches),
             },

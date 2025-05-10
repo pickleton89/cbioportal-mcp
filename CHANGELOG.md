@@ -6,6 +6,25 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ### 2025-05-10
 
+#### Test Suite Refactoring: Multi-Entity API Tests & Bug Fixes
+
+- **Objective**: Continue improving test suite organization and address bugs uncovered during refactoring.
+- **Refactoring**:
+    - Created `tests/test_multiple_entity_apis.py`.
+    - Moved all `test_get_multiple_*` tests (7 tests) from `tests/test_cbioportal_server.py` to `tests/test_multiple_entity_apis.py`.
+    - `tests/test_cbioportal_server.py` is now significantly streamlined, primarily containing setup code.
+- **Bug Fixes in `cbioportal_server.py`**:
+    - `get_multiple_studies`: Ensured metadata includes `"concurrent": True` even for empty input lists, fixing a `KeyError`.
+    - `get_multiple_genes`:
+        - Corrected dictionary keying to use `hugoGeneSymbol` or `entrezGeneId` based on the `gene_id_type` request parameter, resolving `KeyError` and count discrepancies.
+        - Refined `execution_time` calculation to accurately reflect the entire method's duration.
+- **Test Fixes in `tests/test_multiple_entity_apis.py`**:
+    - `test_get_multiple_genes_multiple_batches_success`: Changed `mock_make_api_request.side_effect` from an `async def` function to a list of mock responses (`[mock_batch_1_response, mock_batch_2_response]`). This resolved an `AssertionError` where only one batch of results was being recognized.
+- **Linting**:
+    - Addressed `E402` (module level import not at top of file) in `tests/test_multiple_entity_apis.py` with `# noqa: E402` for a necessary import order.
+- **Verification**: All 33 tests in the suite are passing.
+- **Impact**: Further organizes the test suite by grouping related tests. Critical bugs in multi-entity fetch methods were identified and fixed, improving data integrity and reliability. The test suite itself is more robust due to mocking improvements.
+
 #### Test Suite Refactoring: Lifecycle Tests
 
 - **Objective**: Improve test suite organization and maintainability.
