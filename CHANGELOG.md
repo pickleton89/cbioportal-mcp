@@ -238,6 +238,15 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Registered new bulk operations as MCP tools with descriptive documentation
   - Resolved the unused `asyncio` import warning by leveraging asyncio's concurrency features
 
+### 2025-05-09 (18:04)
+
+#### Bug Fix: Method Registration Error
+
+- **Issue**: During testing, discovered a reference to a non-existent method `get_mutations_by_gene_and_study` in the tool registration code
+- **Resolution**: Removed the invalid tool registration line from `_register_tools` method
+- **Impact**: This fix enables the server to start properly without throwing an `AttributeError`
+- **Root Cause**: The method was likely referenced during development but never implemented, or was removed without updating the registration code
+
 
 
   #### Next Steps
