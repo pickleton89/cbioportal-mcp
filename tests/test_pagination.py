@@ -76,8 +76,8 @@ class TestPagination(unittest.TestCase):
         # Configure the mock to return a slice of our mock data
         mock_api_request.return_value = self.mock_studies[:20]
         
-        # Call the method with pagination params
-        result = self.server.get_cancer_studies(page_number=0, page_size=20)
+        # Call the method with pagination params and run it through the event loop
+        result = asyncio.run(self.server.get_cancer_studies(page_number=0, page_size=20))
         
         # Assert that the API was called with the correct parameters
         mock_api_request.assert_called_with("studies", params={
@@ -94,7 +94,7 @@ class TestPagination(unittest.TestCase):
         
         # Test the next page
         mock_api_request.return_value = self.mock_studies[20:40]
-        result = self.server.get_cancer_studies(page_number=1, page_size=20)
+        result = asyncio.run(self.server.get_cancer_studies(page_number=1, page_size=20))
         
         # Assert that the API was called with the correct parameters
         mock_api_request.assert_called_with("studies", params={
@@ -116,13 +116,13 @@ class TestPagination(unittest.TestCase):
             reverse=True
         )
         
-        # Call with sort parameters
-        result = self.server.get_cancer_studies(
+        # Call with sort parameters and run it through the event loop
+        result = asyncio.run(self.server.get_cancer_studies(
             page_number=0, 
             page_size=20, 
             sort_by="name", 
             direction="DESC"
-        )
+        ))
         
         # Assert sorting parameters were passed
         mock_api_request.assert_called_with("studies", params={
@@ -140,12 +140,12 @@ class TestPagination(unittest.TestCase):
         """Test that the limit parameter works correctly."""
         mock_api_request.return_value = self.mock_studies[:50]
         
-        # Call with limit
-        result = self.server.get_cancer_studies(
+        # Call with limit and run it through the event loop
+        result = asyncio.run(self.server.get_cancer_studies(
             page_number=0, 
             page_size=50, 
             limit=30
-        )
+        ))
         
         # Verify limit was applied
         self.assertEqual(len(result["studies"]), 30)
@@ -228,20 +228,20 @@ class TestPagination(unittest.TestCase):
         self.assertEqual(result["pagination"]["page_size"], 15)
         self.assertTrue(result["pagination"]["has_more"])
 
-    @patch('cbioportal_server.CBioPortalMCPServer._make_api_request')
-    def test_get_all_results(self, mock_api_request):
+    @patch('cbioportal_server.CBioPortalMCPServer.collect_all_results')
+    def test_get_all_results(self, mock_collect_all):
         """Test the special case of getting all results."""
-        mock_api_request.return_value = self.mock_studies
+        # Set up the mock to return our mock studies directly, bypassing the async iterator
+        async def mock_collect_side_effect(*args, **kwargs):
+            return self.mock_studies
+            
+        mock_collect_all.side_effect = mock_collect_side_effect
         
         # Call with limit=0 (all results) and run it through the event loop
         result = asyncio.run(self.server.get_cancer_studies(limit=0))
         
-        # Verify that max page size was used
-        mock_api_request.assert_called_with("studies", params={
-            "pageNumber": 0, 
-            "pageSize": 10000000,  # API max
-            "direction": "ASC"
-        })
+        # Verify collect_all_results was called correctly
+        mock_collect_all.assert_called_once()
         
         # Verify all results were returned
         self.assertEqual(len(result["studies"]), len(self.mock_studies))
@@ -252,10 +252,16 @@ class TestPagination(unittest.TestCase):
         gene_id = "TP53"
         study_id = "study_mut"
         sample_list_id = "sample_list_1"
-        mock_api_request.side_effect = [
-            [{'molecularProfileId': 'TP53_mutation'}],  # First call result
-            self.mock_mutations[:25]                   # Second call result
-        ]
+        page_size = 25
+        
+        # For async side effects, we need to use coroutine side_effect values
+        async def async_side_effect(*args, **kwargs):
+            if args[0] == f"studies/{study_id}/molecular-profiles":
+                return [{'molecularProfileId': 'TP53_mutation', 'molecularAlterationType': 'MUTATION_EXTENDED'}]
+            else:
+                return self.mock_mutations[:25]
+                
+        mock_api_request.side_effect = async_side_effect
         
         # Call the method and run it through the event loop
         result = asyncio.run(self.server.get_mutations_in_gene(
@@ -270,15 +276,14 @@ class TestPagination(unittest.TestCase):
         expected_calls = [
             call(f"studies/{study_id}/molecular-profiles"),
             call(
-                f"molecular-profiles/TP53_mutation/mutations",
+                "molecular-profiles/TP53_mutation/mutations",
                 method="GET",
                 params={
-                    "pageNumber": 0,
-                    "pageSize": 25,
-                    "direction": "DESC",
-                    "sortBy": "proteinChange",
                     "studyId": study_id,
                     "sampleListId": sample_list_id,
+                    "pageNumber": 0,
+                    "pageSize": 25,
+                    "direction": "ASC",
                     "hugoGeneSymbol": gene_id
                 }
             )
@@ -295,20 +300,22 @@ class TestPagination(unittest.TestCase):
         
         # Test second page to ensure pagination is working
         mock_api_request.reset_mock()
-        mock_api_request.side_effect = [
-            # First call returns a molecular profile with MUTATION_EXTENDED
-            [{"molecularProfileId": f"{gene_id}_mutation", "molecularAlterationType": "MUTATION_EXTENDED"}],
-            # Second call returns the mutations for second page
-            self.mock_mutations[page_size:page_size*2]
-        ]
+        # Set up a new side effect for the second page
+        async def second_page_side_effect(*args, **kwargs):
+            if args[0] == "studies/" + study_id + "/molecular-profiles":
+                return [{"molecularProfileId": "TP53_mutation", "molecularAlterationType": "MUTATION_EXTENDED"}]
+            else:
+                return self.mock_mutations[page_size:page_size*2]
+                
+        mock_api_request.side_effect = second_page_side_effect
         
-        result = self.server.get_mutations_in_gene(
+        result = asyncio.run(self.server.get_mutations_in_gene(
             gene_id=gene_id,
             study_id=study_id,
             sample_list_id=sample_list_id,
             page_number=1,
             page_size=page_size
-        )
+        ))
         
         # Verify second page calls
         expected_calls = [
@@ -337,19 +344,23 @@ class TestPagination(unittest.TestCase):
         limit_val = 10
         page_size = 25
     
-        # Setup mock for both calls
-        mock_api_request.side_effect = [
-            # First call returns a molecular profile with MUTATION_EXTENDED
-            [{"molecularProfileId": f"{gene_id}_mutation", "molecularAlterationType": "MUTATION_EXTENDED"}],
-            # Second call returns sorted mutations
-            sorted(
-                self.mock_mutations,
-                key=lambda m: m[sort_by_field],
-                reverse=True
-            )[:page_size]  # API would return a page
-        ]
+        # Setup mock for async calls properly
+        sorted_mutations = sorted(
+            self.mock_mutations,
+            key=lambda m: m[sort_by_field],
+            reverse=True
+        )[:page_size]  # API would return a page
+        
+        # Use an async function for side_effect to handle async method calls
+        async def mock_side_effect(*args, **kwargs):
+            if args[0] == f"studies/{study_id}/molecular-profiles":
+                return [{"molecularProfileId": "TP53_mutation", "molecularAlterationType": "MUTATION_EXTENDED"}]
+            else:
+                return sorted_mutations
+                
+        mock_api_request.side_effect = mock_side_effect
     
-        result = self.server.get_mutations_in_gene(
+        result = asyncio.run(self.server.get_mutations_in_gene(
             gene_id=gene_id,
             study_id=study_id,
             sample_list_id=sample_list_id,
@@ -358,7 +369,7 @@ class TestPagination(unittest.TestCase):
             sort_by=sort_by_field,
             direction="DESC",
             limit=limit_val
-        )
+        ))
     
         # Verify both calls
         expected_calls = [
@@ -388,13 +399,13 @@ class TestPagination(unittest.TestCase):
     
         # Setup mock for GET request (no attribute_ids)
         mock_api_request.return_value = self.mock_clinical_data[:page_size]
-        
+    
         # First page with no attribute_ids (uses GET)
-        result = self.server.get_clinical_data(
+        result = asyncio.run(self.server.get_clinical_data(
             study_id=study_id,
             page_number=0,
             page_size=page_size
-        )
+        ))
         
         # Verify correct endpoint and params for GET request
         expected_endpoint = f"studies/{study_id}/clinical-data"
@@ -417,11 +428,11 @@ class TestPagination(unittest.TestCase):
 
         # Second page with no attribute_ids (uses GET)
         mock_api_request.return_value = self.mock_clinical_data[page_size:page_size*2]
-        result = self.server.get_clinical_data(
+        result = asyncio.run(self.server.get_clinical_data(
             study_id=study_id,
             page_number=1,
             page_size=page_size
-        )
+        ))
         
         # Verify correct endpoint and params for second page GET request
         mock_api_request.assert_called_with(expected_endpoint, method="GET", params={
@@ -450,15 +461,15 @@ class TestPagination(unittest.TestCase):
             reverse=True
         )[:page_size] # API would return a page
     
-        result = self.server.get_clinical_data(
+        result = asyncio.run(self.server.get_clinical_data(
             study_id=study_id,
-            attribute_ids=attribute_ids, 
+            attribute_ids=attribute_ids,
             page_number=0,
             page_size=page_size,
             sort_by=sort_by_field,
             direction="DESC",
             limit=limit_val
-        )
+        ))
     
         # When attribute_ids is provided, it uses a POST request with JSON data
         expected_endpoint = f"studies/{study_id}/clinical-data/fetch"

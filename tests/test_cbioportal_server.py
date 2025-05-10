@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 import sys
 import os
+import asyncio
 
 # Add the parent directory to the path so we can import the cbioportal_server module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -37,12 +38,12 @@ class TestCBioPortalServer(unittest.TestCase):
     @patch('cbioportal_server.CBioPortalMCPServer._make_api_request')
     def test_get_study_details(self, mock_api_request):
         """Test that study details retrieval works correctly."""
-        # Configure the mock
+        # Configure the mock to return an async value
         study_id = "study_1"
         mock_api_request.return_value = self.mock_study
         
-        # Call the method
-        result = self.server.get_study_details(study_id)
+        # Call the method and run it through the event loop
+        result = asyncio.run(self.server.get_study_details(study_id))
         
         # Assert the API was called correctly
         mock_api_request.assert_called_once_with(f"studies/{study_id}")
@@ -57,12 +58,12 @@ class TestCBioPortalServer(unittest.TestCase):
         gene_ids = ["BRCA1", "672"]
         mock_api_request.return_value = [self.mock_gene]
         
-        # Call the method
-        result = self.server.get_genes(
+        # Call the method and run it through the event loop
+        result = asyncio.run(self.server.get_genes(
             gene_ids=gene_ids,
             gene_id_type="HUGO_GENE_SYMBOL",
             projection="SUMMARY"
-        )
+        ))
         
         # Assert the API was called correctly
         mock_api_request.assert_called_once_with(
@@ -82,10 +83,13 @@ class TestCBioPortalServer(unittest.TestCase):
     def test_error_handling(self, mock_api_request):
         """Test error handling in the API calls."""
         # Configure the mock to raise an exception
-        mock_api_request.side_effect = Exception("API is unavailable")
+        async def mock_side_effect(*args, **kwargs):
+            raise Exception("API is unavailable")
+            
+        mock_api_request.side_effect = mock_side_effect
         
-        # Call a method that should handle this error
-        result = self.server.get_cancer_studies()
+        # Call a method that should handle this error and run it through the event loop
+        result = asyncio.run(self.server.get_cancer_studies())
         
         # Assert that the error was handled correctly
         self.assertIn("error", result)

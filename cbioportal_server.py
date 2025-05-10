@@ -420,14 +420,14 @@ class CBioPortalMCPServer:
         except Exception as e:
             return {"error": f"Failed to get molecular profiles for {study_id}: {str(e)}"}
 
-    def get_mutations_in_gene(self, gene_id: str, study_id: str, sample_list_id: str, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
+    async def get_mutations_in_gene(self, gene_id: str, study_id: str, sample_list_id: str, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
         """
         Get mutations in a specific gene for a given study and sample list, with pagination support.
         Uses the /molecular-profiles/{molecularProfileId}/mutations endpoint with GET and query parameters.
         The molecularProfileId is dynamically determined based on the studyId.
         """
         try:
-            molecular_profiles_response = self._make_api_request(f"studies/{study_id}/molecular-profiles")
+            molecular_profiles_response = await self._make_api_request(f"studies/{study_id}/molecular-profiles")
             if isinstance(molecular_profiles_response, dict) and "api_error" in molecular_profiles_response:
                 return {"error": f"Failed to fetch molecular profiles for study {study_id} to find mutation profile", "details": molecular_profiles_response}
 
@@ -459,7 +459,7 @@ class CBioPortalMCPServer:
                 api_call_params["hugoGeneSymbol"] = gene_id
 
             endpoint = f"molecular-profiles/{mutation_profile_id}/mutations"
-            mutations_from_api = self._make_api_request(endpoint, method="GET", params=api_call_params)
+            mutations_from_api = await self._make_api_request(endpoint, method="GET", params=api_call_params)
 
             if isinstance(mutations_from_api, dict) and "api_error" in mutations_from_api:
                  return {"error": "API error fetching mutations", "details": mutations_from_api, "request_params": api_call_params}
@@ -488,7 +488,7 @@ class CBioPortalMCPServer:
         except Exception as e:
             return {"error": f"An unexpected error occurred in get_mutations_in_gene: {str(e)}"}
 
-    def get_clinical_data(self, study_id: str, attribute_ids: Optional[List[str]] = None, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
+    async def get_clinical_data(self, study_id: str, attribute_ids: Optional[List[str]] = None, page_number: int = 0, page_size: int = 50, sort_by: Optional[str] = None, direction: str = "ASC", limit: Optional[int] = None) -> Dict:
         """
         Get clinical data for patients in a study with pagination support. Can fetch specific attributes or all.
         """
@@ -508,10 +508,10 @@ class CBioPortalMCPServer:
             if attribute_ids:
                 endpoint = f"studies/{study_id}/clinical-data/fetch"
                 payload = {"attributeIds": attribute_ids, "clinicalDataType": "PATIENT"}
-                clinical_data_from_api = self._make_api_request(endpoint, method="POST", json_data=payload, params=api_call_params)
+                clinical_data_from_api = await self._make_api_request(endpoint, method="POST", json_data=payload, params=api_call_params)
             else:
                 endpoint = f"studies/{study_id}/clinical-data"
-                clinical_data_from_api = self._make_api_request(endpoint, method="GET", params=api_call_params)
+                clinical_data_from_api = await self._make_api_request(endpoint, method="GET", params=api_call_params)
 
             if isinstance(clinical_data_from_api, dict) and "api_error" in clinical_data_from_api:
                  return {"error": "API error fetching clinical data", "details": clinical_data_from_api, "request_params": api_call_params}
