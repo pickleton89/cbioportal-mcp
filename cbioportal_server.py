@@ -26,10 +26,11 @@ class CBioPortalMCPServer:
             description="Access cancer genomics data from cBioPortal",
             instructions="This server provides tools to access and analyze cancer genomics data from cBioPortal.",
         )
+        # Initialize resources
+        self.client = httpx.AsyncClient(timeout=30.0)
+        
+        # Register tools
         self._register_tools()
-        # Register lifecycle hooks
-        self.mcp.on_startup(self.startup)
-        self.mcp.on_shutdown(self.shutdown)
         
     async def startup(self):
         """Initialize async resources when server starts."""

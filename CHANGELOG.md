@@ -247,6 +247,13 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 - **Impact**: This fix enables the server to start properly without throwing an `AttributeError`
 - **Root Cause**: The method was likely referenced during development but never implemented, or was removed without updating the registration code
 
+#### FastMCP Compatibility Fix
+
+- **Issue**: The installed version of FastMCP doesn't support the `on_startup` and `on_shutdown` lifecycle hooks
+- **Resolution**: Modified the server initialization to directly create the HTTP client instead of using lifecycle hooks
+- **Impact**: Ensures compatibility with the available FastMCP version
+- **Adaptation**: Updated test script to remove calls to startup/shutdown methods that are no longer needed
+
 
 
   #### Next Steps

@@ -104,17 +104,15 @@ async def main():
     print("Starting cBioPortal MCP Server Async Tests")
     print("==========================================")
     
-    # Set up the client
-    server = CBioPortalMCPServer()
-    await server.startup()  # Initialize the async HTTP client
-    
     try:
+        # Run the tests
         await test_sequential_vs_concurrent()
         await test_gene_batch_concurrency()
-    finally:
-        await server.shutdown()  # Clean up resources
-    
-    print("\nAll tests completed successfully!")
+        
+        print("\nAll tests completed successfully!")
+    except Exception as e:
+        print(f"\nTest failed: {str(e)}")
+        raise
 
 if __name__ == "__main__":
     # Run the async tests
