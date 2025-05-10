@@ -4,31 +4,7 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ## [Unreleased]
 
-### 2025-05-10
 
-#### Async Implementation Completion
-
-- **Fixed Async Methods and Tests**:
-  - Completed the transition to fully async implementation, fixing the remaining issues with coroutines and tests
-  - Added `await` to the second API call in `get_mutations_in_gene` method to ensure proper handling of asynchronous operations
-  - Converted `get_clinical_data` method to be async and added `await` to its API calls
-  - Updated all tests to properly handle async functions using `asyncio.run()`
-  - Fixed tests that were getting stuck in infinite loops by improving async mock handling
-  - Fixed all remaining test failures with proper async mocking patterns
-
-- **Test Suite Results**:
-  - All 15 tests now pass successfully
-  - Fixed specific test issues in:
-    - `test_get_mutations_in_gene_pagination`
-    - `test_get_mutations_in_gene_with_sort_and_limit`
-    - `test_get_clinical_data_pagination`
-    - `test_get_clinical_data_with_sort_and_limit`
-    - `test_get_all_results`
-
-- **Code Quality**:
-  - Improved mock setup for async methods using async side_effect functions
-  - Standardized approach to testing asynchronous API methods
-  - Eliminated coroutine handling errors and RuntimeWarnings
 
 ### 2025-05-09
 
@@ -293,7 +269,44 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Demonstrated the effective batch processing with concurrent execution
 - **Validation**: All operations produced consistent results with excellent performance gains
 
-  #### Next Steps
+
+### 2025-05-10 (09:00)
+
+#### Async Implementation Completion
+
+- **Fixed Async Methods and Tests**:
+  - Completed the transition to fully async implementation, fixing the remaining issues with coroutines and tests
+  - Added `await` to the second API call in `get_mutations_in_gene` method to ensure proper handling of asynchronous operations
+  - Converted `get_clinical_data` method to be async and added `await` to its API calls
+  - Updated all tests to properly handle async functions using `asyncio.run()`
+  - Fixed tests that were getting stuck in infinite loops by improving async mock handling
+  - Fixed all remaining test failures with proper async mocking patterns
+
+- **Test Suite Results**:
+  - All 15 tests now pass successfully
+  - Fixed specific test issues in:
+    - `test_get_mutations_in_gene_pagination`
+    - `test_get_mutations_in_gene_with_sort_and_limit`
+    - `test_get_clinical_data_pagination`
+    - `test_get_clinical_data_with_sort_and_limit`
+    - `test_get_all_results`
+
+- **Code Quality**:
+  - Improved mock setup for async methods using async side_effect functions
+  - Standardized approach to testing asynchronous API methods
+  - Eliminated coroutine handling errors and RuntimeWarnings
+
+
+#### FastMCP Async Lifecycle Management Fix (09:30)
+
+- **Fixed Server Startup and Lifecycle Management**:
+  - Modified the server's run method to be synchronous, which matches FastMCP's expected pattern
+  - Properly registered async lifecycle hooks via `mcp.on_startup` and `mcp.on_shutdown` properties
+  - Simplified the main function to let FastMCP handle the event loop internally
+  - Fixed integration with Claude Desktop which now successfully connects to the server
+  - Maintained the benefits of async implementation for I/O-bound API calls
+
+#### Next Steps
 
 - The cBioPortal MCP server now features full async support with significant performance improvements
 - Potential future enhancements:
