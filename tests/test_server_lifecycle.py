@@ -41,6 +41,8 @@ async def test_tool_registration(cbioportal_server_instance):
         "get_multiple_genes",
         "get_genes",
         "get_sample_list_id",
+        "get_gene_panels_for_study",
+        "get_gene_panel_details",
     }
 
     # Methods that should NOT be registered (internal, lifecycle, etc.) (corrected list)
