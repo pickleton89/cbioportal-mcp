@@ -1,12 +1,70 @@
 # serializer version: 1
 # name: test_get_cancer_studies_snapshot
   dict({
-    'error': "Failed to get cancer studies: API request to studies failed: 'NoneType' object has no attribute 'get'",
+    'pagination': dict({
+      'has_more': True,
+      'page': 0,
+      'page_size': 2,
+      'total_found': 2,
+    }),
+    'studies': list([
+      dict({
+        'allSampleCount': 93,
+        'cancerTypeId': 'bll',
+        'citation': 'Andersson et al. Nat Genet 2015',
+        'description': 'Comprehensive profiling of infant MLL-rearranged acute lymphoblastic leukemia (MLL-R ALL)',
+        'groups': 'PUBLIC',
+        'importDate': '2024-12-03 11:48:34',
+        'name': 'Acute Lymphoblastic Leukemia (St Jude, Nat Genet 2015)',
+        'pmid': '25730765',
+        'publicStudy': True,
+        'readPermission': True,
+        'referenceGenome': 'hg19',
+        'status': 0,
+        'studyId': 'all_stjude_2015',
+      }),
+      dict({
+        'allSampleCount': 44,
+        'cancerTypeId': 'myeloid',
+        'citation': 'Holmfeldt et al. Nat Genet 2013',
+        'description': 'Whole genome or exome sequencing of 44 (20 whole genome, 20 exome) ALL tumor/normal pairs.',
+        'groups': '',
+        'importDate': '2024-12-03 11:50:01',
+        'name': 'Hypodiploid Acute Lymphoid Leukemia (St Jude, Nat Genet 2013)',
+        'pmid': '23334668',
+        'publicStudy': True,
+        'readPermission': True,
+        'referenceGenome': 'hg19',
+        'status': 0,
+        'studyId': 'all_stjude_2013',
+      }),
+    ]),
   })
 # ---
 # name: test_get_cancer_types_snapshot
   dict({
-    'error': "Failed to get cancer types: API request to cancer-types failed: 'NoneType' object has no attribute 'get'",
+    'cancer_types': list([
+      dict({
+        'cancerTypeId': 'aa',
+        'dedicatedColor': 'LightYellow',
+        'name': 'Aggressive Angiomyxoma',
+        'parent': 'soft_tissue',
+        'shortName': 'AA',
+      }),
+      dict({
+        'cancerTypeId': 'aastr',
+        'dedicatedColor': 'Gray',
+        'name': 'Anaplastic Astrocytoma',
+        'parent': 'difg',
+        'shortName': 'AASTR',
+      }),
+    ]),
+    'pagination': dict({
+      'has_more': True,
+      'page': 0,
+      'page_size': 2,
+      'total_found': 2,
+    }),
   })
 # ---
 # name: test_get_clinical_data_snapshot
@@ -109,7 +167,34 @@
 # ---
 # name: test_get_molecular_profiles_snapshot
   dict({
-    'error': "Failed to get molecular profiles for acc_tcga: API request to studies/acc_tcga/molecular-profiles failed: 'NoneType' object has no attribute 'get'",
+    'molecular_profiles': list([
+      dict({
+        'datatype': 'LOG2-VALUE',
+        'description': 'Protein expression measured by reverse-phase protein array',
+        'molecularAlterationType': 'PROTEIN_LEVEL',
+        'molecularProfileId': 'acc_tcga_rppa',
+        'name': 'Protein expression (RPPA)',
+        'patientLevel': False,
+        'showProfileInAnalysisTab': False,
+        'studyId': 'acc_tcga',
+      }),
+      dict({
+        'datatype': 'Z-SCORE',
+        'description': 'Protein expression, measured by reverse-phase protein array, z-scores',
+        'molecularAlterationType': 'PROTEIN_LEVEL',
+        'molecularProfileId': 'acc_tcga_rppa_Zscores',
+        'name': 'Protein expression z-scores (RPPA)',
+        'patientLevel': False,
+        'showProfileInAnalysisTab': True,
+        'studyId': 'acc_tcga',
+      }),
+    ]),
+    'pagination': dict({
+      'has_more': True,
+      'page': 0,
+      'page_size': 2,
+      'total_found': 9,
+    }),
   })
 # ---
 # name: test_get_mutations_in_gene_snapshot
@@ -166,7 +251,30 @@
 # ---
 # name: test_get_samples_in_study_snapshot
   dict({
-    'error': "Failed to get samples for study acc_tcga: API request to studies/acc_tcga/samples failed: 'NoneType' object has no attribute 'get'",
+    'pagination': dict({
+      'has_more': True,
+      'page': 0,
+      'page_size': 2,
+      'total_found': 2,
+    }),
+    'samples': list([
+      dict({
+        'patientId': 'TCGA-OR-A5J1',
+        'sampleId': 'TCGA-OR-A5J1-01',
+        'sampleType': 'Primary Solid Tumor',
+        'studyId': 'acc_tcga',
+        'uniquePatientKey': 'VENHQS1PUi1BNUoxOmFjY190Y2dh',
+        'uniqueSampleKey': 'VENHQS1PUi1BNUoxLTAxOmFjY190Y2dh',
+      }),
+      dict({
+        'patientId': 'TCGA-OR-A5J2',
+        'sampleId': 'TCGA-OR-A5J2-01',
+        'sampleType': 'Primary Solid Tumor',
+        'studyId': 'acc_tcga',
+        'uniquePatientKey': 'VENHQS1PUi1BNUoyOmFjY190Y2dh',
+        'uniqueSampleKey': 'VENHQS1PUi1BNUoyLTAxOmFjY190Y2dh',
+      }),
+    ]),
   })
 # ---
 # name: test_get_study_details_snapshot
@@ -208,11 +316,65 @@
 # ---
 # name: test_search_genes_snapshot
   dict({
-    'error': "Failed to search genes: API request to genes failed: 'NoneType' object has no attribute 'get'",
+    'genes': list([
+      dict({
+        'entrezGeneId': 394269,
+        'hugoGeneSymbol': 'BRCA1P1',
+        'type': 'pseudogene',
+      }),
+      dict({
+        'entrezGeneId': 672,
+        'hugoGeneSymbol': 'BRCA1',
+        'type': 'protein-coding',
+      }),
+    ]),
+    'pagination': dict({
+      'has_more': True,
+      'page': 0,
+      'page_size': 2,
+      'total_found': 2,
+    }),
   })
 # ---
 # name: test_search_studies_snapshot
   dict({
-    'error': "Failed to search studies for 'PanCancer': An unexpected error occurred - API request to studies failed: 'NoneType' object has no attribute 'get'",
+    'pagination': dict({
+      'has_more': True,
+      'page': 0,
+      'page_size': 2,
+      'total_found': 32,
+    }),
+    'studies': list([
+      dict({
+        'allSampleCount': 411,
+        'cancerTypeId': 'blca',
+        'citation': 'TCGA, Cell 2018',
+        'description': 'Bladder Urothelial Carcinoma TCGA PanCancer data. The original data is <a href="https://gdc.cancer.gov/about-data/publications/pancanatlas">here</a>. The publications are <a href="https://www.cell.com/pb-assets/consortium/pancanceratlas/pancani3/index.html">here</a>.',
+        'groups': 'PUBLIC;PANCAN',
+        'importDate': '2024-12-19 18:07:22',
+        'name': 'Bladder Urothelial Carcinoma (TCGA, PanCancer Atlas)',
+        'pmid': '29625048,29596782,29622463,29617662,29625055,29625050,29617662,32214244,29625049,29850653,36334560',
+        'publicStudy': True,
+        'readPermission': True,
+        'referenceGenome': 'hg19',
+        'status': 0,
+        'studyId': 'blca_tcga_pan_can_atlas_2018',
+      }),
+      dict({
+        'allSampleCount': 1084,
+        'cancerTypeId': 'brca',
+        'citation': 'TCGA, Cell 2018',
+        'description': 'Breast Invasive Carcinoma TCGA PanCancer data. The original data is <a href="https://gdc.cancer.gov/about-data/publications/pancanatlas">here</a>. The publications are <a href="https://www.cell.com/pb-assets/consortium/pancanceratlas/pancani3/index.html">here</a>.',
+        'groups': 'PUBLIC;PANCAN',
+        'importDate': '2024-12-20 06:03:20',
+        'name': 'Breast Invasive Carcinoma (TCGA, PanCancer Atlas)',
+        'pmid': '29625048,29596782,29622463,29617662,29625055,29625050,29617662,30643250,32214244,29625049,29850653,36334560',
+        'publicStudy': True,
+        'readPermission': True,
+        'referenceGenome': 'hg19',
+        'status': 0,
+        'studyId': 'brca_tcga_pan_can_atlas_2018',
+      }),
+    ]),
   })
 # ---

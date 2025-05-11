@@ -168,6 +168,11 @@ class CBioPortalMCPServer:
         """Make an asynchronous API request to the cBioPortal API."""
         url = f"{self.base_url}/{endpoint}"
         try:
+            # Ensure client is initialized (in case startup wasn't called)
+            if not hasattr(self, 'client') or self.client is None:
+                logger.info("Initializing HTTP client on-demand")
+                self.client = httpx.AsyncClient(timeout=30.0)
+                
             if method.upper() == "GET":
                 response = await self.client.get(url, params=params)
             elif method.upper() == "POST":
