@@ -1298,17 +1298,18 @@ async def main():
 
     if args.transport.lower() == "stdio":
         try:
-            await server_instance.mcp.run(sys.stdin.buffer, sys.stdout.buffer)
+            # Use run_async directly to avoid creating a new event loop
+            # This is needed for compatibility with Claude Desktop which already has an event loop
+            await server_instance.mcp.run_async(transport="stdio")
         except KeyboardInterrupt:
             logger.info("Server interrupted by user (KeyboardInterrupt).")
         except Exception as e:
             logger.error(f"An unexpected error occurred during server execution: {e}", exc_info=True)
         finally:
             logger.info("Server shutdown sequence initiated from main.")
-            # Explicitly call shutdown hooks if not handled by mcp.run() on exit/error
-            # However, FastMCP's run is expected to handle its registered on_shutdown hooks.
-            # If self.mcp.on_shutdown are not run automatically by mcp.run() upon KeyboardInterrupt
-            # or other exceptions, they might need to be manually triggered here.
+            # Explicitly call shutdown hooks if not handled by FastMCP
+            if server_instance.client is not None:
+                await server_instance.shutdown()
             # For now, assuming FastMCP handles it.
     else:
         logger.error(f"Unsupported transport: {args.transport}")

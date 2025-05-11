@@ -5,7 +5,6 @@ import sys
 import os
 import pytest
 import argparse
-import logging
 from unittest.mock import MagicMock
 
 # Add the parent directory to the path so we can import the cbioportal_server module
@@ -29,12 +28,14 @@ async def test_main_default_args(mocker):
 
     # Mock the server class and its MCP run method
     mock_server_instance = MagicMock(spec=CBioPortalMCPServer)
+    # Add client attribute to mock to prevent AttributeError in main()'s shutdown handling
+    mock_server_instance.client = None
     mock_cbioportal_server_class = mocker.patch('cbioportal_server.CBioPortalMCPServer', return_value=mock_server_instance)
     
-    # Ensure mock_server_instance.mcp is a mock, then set its run method
+    # Ensure mock_server_instance.mcp is a mock, then set its run_async method
     mock_server_instance.mcp = MagicMock()
     mock_mcp_run = mocker.async_stub(name='mock_mcp_run_stdio')
-    mock_server_instance.mcp.run = mock_mcp_run
+    mock_server_instance.mcp.run_async = mock_mcp_run
 
     # Mock logging
     mock_logging_basic_config = mocker.patch('logging.basicConfig')
@@ -59,7 +60,8 @@ async def test_main_default_args(mocker):
     assert mock_cbioportal_logger.info.call_count >= 2 # At least for starting and shutdown
     mock_cbioportal_logger.info.assert_any_call("Starting cBioPortal MCP Server with transport: stdio")
     mock_cbioportal_logger.info.assert_any_call("cBioPortal MCP Server has shut down.")
-    mock_mcp_run.assert_called_once_with(sys.stdin.buffer, sys.stdout.buffer)
+    # Updated assertion to match the new run_async method call instead of the old run method
+    mock_mcp_run.assert_called_once_with(transport="stdio")
     
     # Check signal handlers setup function was called
     mock_setup_signal_handlers.assert_called_once()
@@ -79,12 +81,14 @@ async def test_main_custom_args(mocker):
     mocker.patch('argparse.ArgumentParser.parse_args', return_value=mock_args)
 
     mock_server_instance = MagicMock(spec=CBioPortalMCPServer)
+    # Add client attribute to mock to prevent AttributeError in main()'s shutdown handling
+    mock_server_instance.client = None
     mock_cbioportal_server_class = mocker.patch('cbioportal_server.CBioPortalMCPServer', return_value=mock_server_instance)
     
-    # Ensure mock_server_instance.mcp is a mock, then set its run method
+    # Ensure mock_server_instance.mcp is a mock, then set its run_async method
     mock_server_instance.mcp = MagicMock()
     mock_mcp_run = mocker.async_stub(name='mock_mcp_run_stdio')
-    mock_server_instance.mcp.run = mock_mcp_run
+    mock_server_instance.mcp.run_async = mock_mcp_run
 
     mock_logging_basic_config = mocker.patch('logging.basicConfig')
     mock_cbioportal_logger = MagicMock()
@@ -107,7 +111,8 @@ async def test_main_custom_args(mocker):
 
     mock_setup_signal_handlers.assert_called_once() # Added assertion
 
-    mock_mcp_run.assert_called_once_with(sys.stdin.buffer, sys.stdout.buffer)
+    # Updated assertion to match the new run_async method call instead of the old run method
+    mock_mcp_run.assert_called_once_with(transport="stdio")
 
 
 @pytest.mark.asyncio
@@ -121,13 +126,15 @@ async def test_main_error_during_run(mocker):
     mocker.patch('argparse.ArgumentParser.parse_args', return_value=mock_args)
 
     mock_server_instance = MagicMock(spec=CBioPortalMCPServer)
+    # Add client attribute to mock to prevent AttributeError in main()'s shutdown handling
+    mock_server_instance.client = None
     mock_cbioportal_server_class = mocker.patch('cbioportal_server.CBioPortalMCPServer', return_value=mock_server_instance)
     
-    # Ensure mock_server_instance.mcp is a mock, then set its run method and side_effect
+    # Ensure mock_server_instance.mcp is a mock, then set its run_async method and side_effect
     mock_server_instance.mcp = MagicMock()
     mock_mcp_run = mocker.async_stub(name='mock_mcp_run_error')
     mock_mcp_run.side_effect = RuntimeError("Test MCP run error")
-    mock_server_instance.mcp.run = mock_mcp_run
+    mock_server_instance.mcp.run_async = mock_mcp_run
 
     mock_logging_basic_config = mocker.patch('logging.basicConfig')
     mock_cbioportal_logger = MagicMock()
@@ -215,13 +222,15 @@ async def test_main_keyboard_interrupt(mocker):
     mocker.patch('argparse.ArgumentParser.parse_args', return_value=mock_args)
 
     mock_server_instance = MagicMock(spec=CBioPortalMCPServer)
+    # Add client attribute to mock to prevent AttributeError in main()'s shutdown handling
+    mock_server_instance.client = None
     mock_cbioportal_server_class = mocker.patch('cbioportal_server.CBioPortalMCPServer', return_value=mock_server_instance)
 
     mock_server_instance.mcp = MagicMock()
     mock_mcp_run = mocker.async_stub(name='mock_mcp_run_interrupt')
-    # Simulate KeyboardInterrupt being raised by mcp.run()
+    # Simulate KeyboardInterrupt being raised by mcp.run_async()
     mock_mcp_run.side_effect = KeyboardInterrupt("Simulated Ctrl+C")
-    mock_server_instance.mcp.run = mock_mcp_run
+    mock_server_instance.mcp.run_async = mock_mcp_run
 
     mock_logging_basic_config = mocker.patch('logging.basicConfig')
     mock_cbioportal_logger = MagicMock()
@@ -247,6 +256,6 @@ async def test_main_keyboard_interrupt(mocker):
     mock_cbioportal_logger.info.assert_any_call("Server interrupted by user (KeyboardInterrupt).")
     mock_cbioportal_logger.info.assert_any_call("cBioPortal MCP Server has shut down.")
     
-    # Ensure mcp.run was called
-    mock_mcp_run.assert_called_once()
+    # Ensure mcp.run was called with the correct transport parameter
+    mock_mcp_run.assert_called_once_with(transport="stdio")
     mock_setup_signal_handlers.assert_called_once()
