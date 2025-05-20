@@ -13,7 +13,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir) # This should be the project root
 sys.path.insert(0, parent_dir)
 
-from cbioportal_server import CBioPortalMCPServer  # noqa: E402
 
 
 @pytest.mark.parametrize(
@@ -104,7 +103,7 @@ from cbioportal_server import CBioPortalMCPServer  # noqa: E402
         ),
     ],
 )
-@patch("cbioportal_server.CBioPortalMCPServer._make_api_request")
+@patch("api_client.APIClient.make_api_request")
 @pytest.mark.asyncio
 async def test_generic_api_error_handling(
     mock_make_api_request,

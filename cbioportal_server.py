@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, AsyncGenerator
 
 import httpx
 from fastmcp import FastMCP
+from api_client import APIClient # Changed from relative for test compatibility
 
 # Ensure project root is in sys.path for utility imports if needed
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -24,9 +25,10 @@ logger = logging.getLogger(__name__)
 class CBioPortalMCPServer:
     """MCP Server for interacting with the cBioPortal API."""
 
-    def __init__(self, base_url: str = "https://www.cbioportal.org/api"):
-        self.base_url = base_url
-        self.client = None  # Will be initialized in startup
+    def __init__(self, base_url: str = "https://www.cbioportal.org/api", client_timeout: float = 480.0):
+        self.base_url = base_url.rstrip('/') # Ensure no trailing slash
+        # self.client = None # Removed
+        self.api_client = APIClient(base_url=self.base_url, client_timeout=client_timeout) # Added, using existing 480s timeout
         self.mcp = FastMCP(
             name="cBioPortal",
             description="Access cancer genomics data from cBioPortal",
@@ -42,14 +44,20 @@ class CBioPortalMCPServer:
 
     async def startup(self):
         """Initialize async resources when server starts."""
-        self.client = httpx.AsyncClient(timeout=480.0)
-        logger.info("cBioPortal MCP Server started with async HTTP client")
+        # self.client = httpx.AsyncClient(timeout=480.0) # Removed
+        await self.api_client.startup() # Added
+        logger.info("cBioPortal MCP Server started, APIClient initialized.") # Updated log
 
     async def shutdown(self):
         """Clean up async resources when server shuts down."""
-        if self.client:
-            await self.client.aclose()
-            logger.info("cBioPortal MCP Server async HTTP client closed")
+        # if self.client: # Removed block
+        #     await self.client.aclose()
+        #     logger.info("cBioPortal MCP Server async HTTP client closed")
+        if hasattr(self, 'api_client') and self.api_client: # Added
+            await self.api_client.shutdown()
+            logger.info("cBioPortal MCP Server APIClient shut down.") # Updated log
+        else: # Added for completeness
+            logger.info("cBioPortal MCP Server APIClient was not available or already shut down.")
 
     def _register_tools(self):
         """Dynamically register public methods as MCP tools."""
@@ -105,7 +113,7 @@ class CBioPortalMCPServer:
             request_params["pageNumber"] = page
 
             # Make the API request
-            results = await self._make_api_request(
+            results = await self.api_client.make_api_request( # Changed
                 endpoint,
                 method=method,
                 params=request_params.copy(),
@@ -162,36 +170,9 @@ class CBioPortalMCPServer:
 
         return all_results
 
-    async def _make_api_request(
-        self,
-        endpoint: str,
-        method: str = "GET",
-        params: Optional[Dict[str, Any]] = None,
-        json_data: Optional[Any] = None,
-    ) -> Any:
-        """Make an asynchronous API request to the cBioPortal API."""
-        url = f"{self.base_url}/{endpoint}"
-        try:
-            # Ensure client is initialized (in case startup wasn't called)
-            if not hasattr(self, "client") or self.client is None:
-                logger.info("Initializing HTTP client on-demand")
-                self.client = httpx.AsyncClient(timeout=30.0)
+    # _make_api_request method was removed.
+    # Its functionality is now handled by the APIClient class in api_client.py.
 
-            if method.upper() == "GET":
-                response = await self.client.get(url, params=params)
-            elif method.upper() == "POST":
-                response = await self.client.post(url, json=json_data, params=params)
-            else:
-                raise ValueError(f"Unsupported HTTP method: {method}")
-            response.raise_for_status()
-            if not response.text:
-                if endpoint.endswith("s") or endpoint.endswith("fetch"):
-                    return []
-                else:
-                    return {}
-            return response.json()
-        except Exception as e:
-            raise Exception(f"API request to {endpoint} failed: {str(e)}")
 
     # --- Collection-returning methods with pagination ---
 
@@ -255,7 +236,7 @@ class CBioPortalMCPServer:
                 has_more = False  # We fetched everything
             else:
                 # Fetch just the requested page
-                studies_from_api = await self._make_api_request(
+                studies_from_api = await self.api_client.make_api_request(
                     "studies", params=api_params
                 )
 
@@ -342,7 +323,7 @@ class CBioPortalMCPServer:
                 has_more = False  # We fetched everything
             else:
                 # Fetch just the requested page
-                types_from_api = await self._make_api_request(
+                types_from_api = await self.api_client.make_api_request(
                     "cancer-types", params=api_params
                 )
 
@@ -415,7 +396,7 @@ class CBioPortalMCPServer:
             if limit == 0:
                 api_call_params["pageSize"] = 10000000
 
-            samples_from_api = await self._make_api_request(
+            samples_from_api = await self.api_client.make_api_request(
                 f"studies/{study_id}/samples", params=api_call_params
             )
 
@@ -491,7 +472,7 @@ class CBioPortalMCPServer:
             if limit == 0:
                 api_call_params["pageSize"] = 10000000
 
-            genes_from_api = await self._make_api_request(
+            genes_from_api = await self.api_client.make_api_request(
                 "genes", params=api_call_params
             )  # Corrected endpoint
 
@@ -580,7 +561,7 @@ class CBioPortalMCPServer:
             # The previous large page_size for limit=0 could be an issue if 'studies' endpoint doesn't paginate by itself.
 
             # Await the asynchronous API call
-            all_studies = await self._make_api_request("studies")
+            all_studies = await self.api_client.make_api_request("studies")
 
             if not isinstance(all_studies, list):
                 # Handle cases where API request might not return a list (e.g., error response)
@@ -700,7 +681,7 @@ class CBioPortalMCPServer:
         try:
             if limit == 0:
                 page_size = 10000000
-            profiles = await self._make_api_request(
+            profiles = await self.api_client.make_api_request(
                 f"studies/{study_id}/molecular-profiles"
             )
             if sort_by:
@@ -744,7 +725,7 @@ class CBioPortalMCPServer:
         The molecularProfileId is dynamically determined based on the studyId.
         """
         try:
-            molecular_profiles_response = await self._make_api_request(
+            molecular_profiles_response = await self.api_client.make_api_request(
                 f"studies/{study_id}/molecular-profiles"
             )
             if (
@@ -786,7 +767,7 @@ class CBioPortalMCPServer:
                 api_call_params["hugoGeneSymbol"] = gene_id
 
             endpoint = f"molecular-profiles/{mutation_profile_id}/mutations"
-            mutations_from_api = await self._make_api_request(
+            mutations_from_api = await self.api_client.make_api_request(
                 endpoint, method="GET", params=api_call_params
             )
 
@@ -862,12 +843,12 @@ class CBioPortalMCPServer:
             if attribute_ids:
                 endpoint = f"studies/{study_id}/clinical-data/fetch"
                 payload = {"attributeIds": attribute_ids, "clinicalDataType": "PATIENT"}
-                clinical_data_from_api = await self._make_api_request(
+                clinical_data_from_api = await self.api_client.make_api_request(
                     endpoint, method="POST", params=api_call_params, json_data=payload
                 )
             else:
                 endpoint = f"studies/{study_id}/clinical-data"
-                clinical_data_from_api = await self._make_api_request(
+                clinical_data_from_api = await self.api_client.make_api_request(
                     endpoint, method="GET", params=api_call_params
                 )
 
@@ -986,7 +967,7 @@ class CBioPortalMCPServer:
                 )
             else:
                 # Fetch a single page as defined by page_number and page_size
-                return await self._make_api_request(endpoint, params=params)
+                return await self.api_client.make_api_request(endpoint, params=params)
         except httpx.HTTPStatusError as e:
             logger.error(
                 f"API error getting gene panels for study {study_id}: {e.response.status_code} - {e.response.text}"
@@ -1034,7 +1015,7 @@ class CBioPortalMCPServer:
         request_body = [gene_panel_id]  # API expects a list of gene panel IDs
 
         try:
-            results = await self._make_api_request(
+            results = await self.api_client.make_api_request(
                 endpoint, method="POST", params=params, json_data=request_body
             )
 
@@ -1104,7 +1085,7 @@ class CBioPortalMCPServer:
         # Create a reusable async function for fetching a single study
         async def fetch_study(study_id):
             try:
-                data = await self._make_api_request(f"studies/{study_id}")
+                data = await self.api_client.make_api_request(f"studies/{study_id}")
                 return {"study_id": study_id, "data": data, "success": True}
             except Exception as e:
                 return {"study_id": study_id, "error": str(e), "success": False}
@@ -1184,7 +1165,7 @@ class CBioPortalMCPServer:
         async def fetch_gene_batch(batch):
             try:
                 params = {"geneIdType": gene_id_type, "projection": projection}
-                batch_data = await self._make_api_request(
+                batch_data = await self.api_client.make_api_request(
                     "genes/fetch", method="POST", params=params, json_data=batch
                 )
                 return {"data": batch_data, "success": True}
@@ -1247,7 +1228,7 @@ class CBioPortalMCPServer:
 
         endpoint = f"studies/{study_id}"
         try:
-            study = await self._make_api_request(endpoint)
+            study = await self.api_client.make_api_request(endpoint)
             return {"study": study}
         except Exception as e:
             return {"error": f"Failed to get study details for {study_id}: {str(e)}"}
@@ -1271,7 +1252,7 @@ class CBioPortalMCPServer:
         """
         try:
             params = {"geneIdType": gene_id_type, "projection": projection}
-            gene_data = await self._make_api_request(
+            gene_data = await self.api_client.make_api_request(
                 "genes/fetch", method="POST", params=params, json_data=gene_ids
             )
             return {"genes": gene_data}
@@ -1279,7 +1260,7 @@ class CBioPortalMCPServer:
             return {"error": f"Failed to get gene information: {str(e)}"}
 
     async def get_sample_list_id(self, study_id: str, sample_list_id: str) -> Dict:
-        return await self._make_api_request(
+        return await self.api_client.make_api_request(
             f"studies/{study_id}/sample_lists/{sample_list_id}"
         )
 

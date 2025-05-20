@@ -573,3 +573,24 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Set up new package structure
   - Move API client and utility functions to dedicated modules
   - Update test suite to match new structure
+
+
+### 2025-05-20 (09:17)
+
+#### Test Suite Refinements (APIClient Integration)
+
+- **`tests/test_server_lifecycle.py` Updates**:
+  - Corrected logger mock setups to accurately capture log messages from both `APIClient` and `CBioPortalMCPServer` during startup and shutdown.
+  - Updated assertions for log messages to align with the refactored server and API client behavior.
+
+- **`tests/test_snapshot_responses.py` Mocking Overhaul**:
+  - Updated mock targets in `test_get_clinical_data_snapshot`, `test_get_clinical_data_specific_attributes_snapshot`, and `test_get_mutations_in_gene_snapshot` from the deprecated `_make_api_request` to the new `api_client.make_api_request`.
+  - Refactored mocking strategy for paginated snapshot tests (`test_get_cancer_studies_snapshot`, `test_get_molecular_profiles_snapshot`, `test_get_cancer_types_snapshot`, `test_get_samples_in_study_snapshot`, `test_search_genes_snapshot`):
+    - Changed mock target from internal `_paginate_results` to `api_client.make_api_request`.
+    - Adjusted mock return values to provide the direct list of data items for the first page.
+    - Removed unused `mock_response_with_pagination` helper variables.
+
+- **Impact & Current Status**:
+  - These changes address test failures stemming from the `APIClient` refactoring.
+  - The test suite now has 7 failing snapshot tests. These failures are expected due to the updated mock data not matching existing (outdated) snapshots. The next logical step for these tests would be to update the snapshots with `pytest --snapshot-update`.
+

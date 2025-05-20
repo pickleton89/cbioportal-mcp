@@ -70,6 +70,14 @@ cbioportal_mcp/
 
 ### 5.1. Existing Test Coverage
 - [x] Comprehensive test suite with 92 passing tests
+
+### 5.1.1. Test Suite Alignment with APIClient (2025-05-20)
+- [x] Refined `tests/test_server_lifecycle.py`:
+  - [x] Updated logger mocks for `APIClient` and `CBioPortalMCPServer`.
+  - [x] Adjusted log message assertions for startup/shutdown.
+- [x] Refined `tests/test_snapshot_responses.py`:
+  - [x] Corrected mock targets to `server_instance.api_client.make_api_request`.
+  - [x] Overhauled mocking strategy for paginated list snapshot tests to align with `APIClient` and `paginate_results` utility behavior.
 - [x] Test files include:
   - `test_server_lifecycle.py`
   - `test_pagination.py`

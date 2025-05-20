@@ -10,7 +10,7 @@ from cbioportal_server import CBioPortalMCPServer
 @pytest.fixture(scope="session")
 def cbioportal_server_instance():
     """Provides a CBioPortalMCPServer instance for tests."""
-    return CBioPortalMCPServer(base_url="https://www.cbioportal.org/api")
+    return CBioPortalMCPServer(base_url="https://www.cbioportal.org/api", client_timeout=30.0)
 
 @pytest.fixture(scope="session")
 def mock_studies_data():
@@ -138,7 +138,7 @@ def mock_gene_batch_response_page1():
 async def cbioportal_server_instance_unstarted():
     """Provides a CBioPortalMCPServer instance without calling startup/shutdown."""
     # Ensure CBioPortalMCPServer is imported; it should be from the top of conftest.py
-    server = CBioPortalMCPServer(base_url="http://mocked.cbioportal.org/api")
+    server = CBioPortalMCPServer(base_url="http://mocked.cbioportal.org/api", client_timeout=30.0)
     yield server
     # No automatic startup/shutdown here, tests will manage if needed.
     # If a test using this fixture calls server.startup(), it should handle shutdown if necessary,
