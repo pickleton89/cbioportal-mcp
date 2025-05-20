@@ -267,13 +267,6 @@ Potential improvements for future versions:
 - Add request retry mechanisms for more robust error handling
 - Implement more concurrent bulk operation methods for other endpoints
 
-### Updates and Maintenance
-
-To update to the latest version of the MCP SDK:
-
-```bash
-pip install -U mcp
-```
 
 ## License
 
