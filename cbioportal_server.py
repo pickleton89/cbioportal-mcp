@@ -20,6 +20,7 @@ from fastmcp import FastMCP
 
 logger = logging.getLogger(__name__)
 
+
 class CBioPortalMCPServer:
     """MCP Server for interacting with the cBioPortal API."""
 
@@ -33,15 +34,15 @@ class CBioPortalMCPServer:
         )
 
         # Register lifecycle hooks
-        self.mcp.on_startup = [self.startup]  
-        self.mcp.on_shutdown = [self.shutdown] 
+        self.mcp.on_startup = [self.startup]
+        self.mcp.on_shutdown = [self.shutdown]
 
         # Register tools
         self._register_tools()
 
     async def startup(self):
         """Initialize async resources when server starts."""
-        self.client = httpx.AsyncClient(timeout=30.0)
+        self.client = httpx.AsyncClient(timeout=480.0)
         logger.info("cBioPortal MCP Server started with async HTTP client")
 
     async def shutdown(self):
@@ -105,7 +106,10 @@ class CBioPortalMCPServer:
 
             # Make the API request
             results = await self._make_api_request(
-                endpoint, method=method, params=request_params.copy(), json_data=json_data
+                endpoint,
+                method=method,
+                params=request_params.copy(),
+                json_data=json_data,
             )
 
             # Check if we got any results
@@ -169,10 +173,10 @@ class CBioPortalMCPServer:
         url = f"{self.base_url}/{endpoint}"
         try:
             # Ensure client is initialized (in case startup wasn't called)
-            if not hasattr(self, 'client') or self.client is None:
+            if not hasattr(self, "client") or self.client is None:
                 logger.info("Initializing HTTP client on-demand")
                 self.client = httpx.AsyncClient(timeout=30.0)
-                
+
             if method.upper() == "GET":
                 response = await self.client.get(url, params=params)
             elif method.upper() == "POST":
@@ -929,9 +933,9 @@ class CBioPortalMCPServer:
         self,
         study_id: str,
         page_number: int = 0,
-        page_size: int = 50, 
-        sort_by: Optional[str] = "genePanelId", 
-        direction: str = "ASC", 
+        page_size: int = 50,
+        sort_by: Optional[str] = "genePanelId",
+        direction: str = "ASC",
         limit: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """
@@ -967,7 +971,7 @@ class CBioPortalMCPServer:
         params = {
             "pageNumber": page_number,
             "pageSize": page_size,
-            "projection": "DETAILED", # Default to include genes in panels
+            "projection": "DETAILED",  # Default to include genes in panels
             "sortBy": sort_by,
             "direction": direction.upper(),
         }
@@ -977,24 +981,34 @@ class CBioPortalMCPServer:
         try:
             if limit is not None:
                 # collect_all_results handles pagination internally up to the limit
-                return await self.collect_all_results(endpoint, params=params, limit=limit)
+                return await self.collect_all_results(
+                    endpoint, params=params, limit=limit
+                )
             else:
                 # Fetch a single page as defined by page_number and page_size
                 return await self._make_api_request(endpoint, params=params)
         except httpx.HTTPStatusError as e:
-            logger.error(f"API error getting gene panels for study {study_id}: {e.response.status_code} - {e.response.text}")
-            return {"error": f"API error: {e.response.status_code}", "details": e.response.text}
+            logger.error(
+                f"API error getting gene panels for study {study_id}: {e.response.status_code} - {e.response.text}"
+            )
+            return {
+                "error": f"API error: {e.response.status_code}",
+                "details": e.response.text,
+            }
         except httpx.RequestError as e:
             logger.error(f"Request error getting gene panels for study {study_id}: {e}")
             return {"error": "Request error", "details": str(e)}
         except Exception as e:
-            logger.error(f"Unexpected error getting gene panels for study {study_id}: {e}", exc_info=True)
+            logger.error(
+                f"Unexpected error getting gene panels for study {study_id}: {e}",
+                exc_info=True,
+            )
             return {"error": "Unexpected server error", "details": str(e)}
 
     async def get_gene_panel_details(
         self,
         gene_panel_id: str,
-        projection: str = "DETAILED", 
+        projection: str = "DETAILED",
     ) -> Dict[str, Any]:
         """
         Get detailed information for a specific gene panel, including the list of genes.
@@ -1010,41 +1024,60 @@ class CBioPortalMCPServer:
         if not gene_panel_id or not isinstance(gene_panel_id, str):
             return {"error": "gene_panel_id must be a non-empty string"}
         if projection.upper() not in ["ID", "SUMMARY", "DETAILED", "META"]:
-            return {"error": "projection must be one of 'ID', 'SUMMARY', 'DETAILED', 'META'"}
+            return {
+                "error": "projection must be one of 'ID', 'SUMMARY', 'DETAILED', 'META'"
+            }
 
         endpoint = "gene-panels/fetch"
         # API requires query param for projection, and POST body for IDs
         params = {"projection": projection.upper()}
-        request_body = [gene_panel_id] # API expects a list of gene panel IDs
+        request_body = [gene_panel_id]  # API expects a list of gene panel IDs
 
         try:
             results = await self._make_api_request(
-                endpoint,
-                method="POST",
-                params=params, 
-                json_data=request_body
+                endpoint, method="POST", params=params, json_data=request_body
             )
-            
+
             # The API returns a list, even for a single ID request
             if isinstance(results, list):
                 if len(results) > 0:
-                    return results[0] # Return the first (and expected only) gene panel object
+                    return results[
+                        0
+                    ]  # Return the first (and expected only) gene panel object
                 else:
                     # Successfully queried, but no panel found for this ID
-                    return {"error": "Gene panel not found", "gene_panel_id": gene_panel_id}
+                    return {
+                        "error": "Gene panel not found",
+                        "gene_panel_id": gene_panel_id,
+                    }
             else:
                 # This case implies an unexpected API response format (not a list)
-                logger.warning(f"Unexpected response format for get_gene_panel_details {gene_panel_id}: {type(results)}")
-                return {"error": "Unexpected response format from API", "details": str(results)}
+                logger.warning(
+                    f"Unexpected response format for get_gene_panel_details {gene_panel_id}: {type(results)}"
+                )
+                return {
+                    "error": "Unexpected response format from API",
+                    "details": str(results),
+                }
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"API error getting gene panel details for {gene_panel_id}: {e.response.status_code} - {e.response.text}")
-            return {"error": f"API error: {e.response.status_code}", "details": e.response.text}
+            logger.error(
+                f"API error getting gene panel details for {gene_panel_id}: {e.response.status_code} - {e.response.text}"
+            )
+            return {
+                "error": f"API error: {e.response.status_code}",
+                "details": e.response.text,
+            }
         except httpx.RequestError as e:
-            logger.error(f"Request error getting gene panel details for {gene_panel_id}: {e}")
+            logger.error(
+                f"Request error getting gene panel details for {gene_panel_id}: {e}"
+            )
             return {"error": "Request error", "details": str(e)}
         except Exception as e:
-            logger.error(f"Unexpected error getting gene panel details for {gene_panel_id}: {e}", exc_info=True)
+            logger.error(
+                f"Unexpected error getting gene panel details for {gene_panel_id}: {e}",
+                exc_info=True,
+            )
             return {"error": "Unexpected server error", "details": str(e)}
 
     # --- Bulk Operations with Concurrency ---
@@ -1246,7 +1279,10 @@ class CBioPortalMCPServer:
             return {"error": f"Failed to get gene information: {str(e)}"}
 
     async def get_sample_list_id(self, study_id: str, sample_list_id: str) -> Dict:
-        return await self._make_api_request(f"studies/{study_id}/sample_lists/{sample_list_id}")
+        return await self._make_api_request(
+            f"studies/{study_id}/sample_lists/{sample_list_id}"
+        )
+
 
 def handle_signal(signum, frame):
     logger.info(f"Signal {signum} received, initiating shutdown...")
@@ -1254,9 +1290,11 @@ def handle_signal(signum, frame):
     # For simplicity, we'll exit. FastMCP's run might handle this more gracefully.
     sys.exit(0)
 
+
 def setup_signal_handlers():
     signal.signal(signal.SIGINT, handle_signal)  # Handle Ctrl+C
     signal.signal(signal.SIGTERM, handle_signal)  # Handle termination
+
 
 async def main():
     parser = argparse.ArgumentParser(description="Run the cBioPortal MCP Server.")
@@ -1268,7 +1306,7 @@ async def main():
     parser.add_argument(
         "--transport",
         default="stdio",
-        choices=["stdio"], # Limiting to stdio for now to simplify
+        choices=["stdio"],  # Limiting to stdio for now to simplify
         help="Transport protocol for MCP communication (currently only 'stdio' supported).",
     )
     # parser.add_argument(
@@ -1278,24 +1316,24 @@ async def main():
     #     help="Port for WebSocket transport (if used)."
     # )
     parser.add_argument(
-        '--log-level', 
-        default='INFO', 
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-        help='Set the logging level.'
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Set the logging level.",
     )
 
     args = parser.parse_args()
 
     # Configure logging
     logging.basicConfig(
-        level=args.log_level.upper(), 
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[logging.StreamHandler(sys.stderr)] # Ensure logs go to stderr
+        level=args.log_level.upper(),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stderr)],  # Ensure logs go to stderr
     )
-    global logger # Use global logger after basicConfig is set
-    logger = logging.getLogger(__name__) # Re-assign to get logger with new config
+    global logger  # Use global logger after basicConfig is set
+    logger = logging.getLogger(__name__)  # Re-assign to get logger with new config
 
-    setup_signal_handlers() # Setup signal handlers for graceful shutdown
+    setup_signal_handlers()  # Setup signal handlers for graceful shutdown
 
     server_instance = CBioPortalMCPServer(base_url=args.base_url)
 
@@ -1309,7 +1347,10 @@ async def main():
         except KeyboardInterrupt:
             logger.info("Server interrupted by user (KeyboardInterrupt).")
         except Exception as e:
-            logger.error(f"An unexpected error occurred during server execution: {e}", exc_info=True)
+            logger.error(
+                f"An unexpected error occurred during server execution: {e}",
+                exc_info=True,
+            )
         finally:
             logger.info("Server shutdown sequence initiated from main.")
             # Explicitly call shutdown hooks if not handled by FastMCP
@@ -1319,8 +1360,9 @@ async def main():
     else:
         logger.error(f"Unsupported transport: {args.transport}")
         sys.exit(1)
-    
+
     logger.info("cBioPortal MCP Server has shut down.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
