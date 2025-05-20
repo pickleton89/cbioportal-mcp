@@ -563,7 +563,7 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Evaluated opportunities for improved code organization and maintainability
 
 - **Refactoring Strategy**:
-  - Created detailed refactoring plan in `REFACTOR_PLAN.md`
+  - Created detailed refactoring plan in `REFACTOR_PLAN.md``
   - Designed new package structure following Python best practices
   - Outlined phased approach to minimize disruption
   - Added Graphiti memory integration for tracking refactoring progress
