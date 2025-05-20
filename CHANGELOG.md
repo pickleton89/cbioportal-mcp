@@ -554,3 +554,22 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Add configuration options for controlling concurrency limits and timeout settings
   - Develop more comprehensive benchmarking and performance monitoring tools
   - Consider caching frequently requested data to further improve performance
+
+#### Refactoring Planning (2024-05-19)
+
+- **Codebase Analysis**:
+  - Conducted comprehensive analysis of the current `cbioportal_server.py` implementation
+  - Identified key components and their interdependencies
+  - Evaluated opportunities for improved code organization and maintainability
+
+- **Refactoring Strategy**:
+  - Created detailed refactoring plan in `REFACTOR_PLAN.md`
+  - Designed new package structure following Python best practices
+  - Outlined phased approach to minimize disruption
+  - Added Graphiti memory integration for tracking refactoring progress
+
+- **Next Steps**:
+  - Begin implementation of Phase 1 (Core Components)
+  - Set up new package structure
+  - Move API client and utility functions to dedicated modules
+  - Update test suite to match new structure
