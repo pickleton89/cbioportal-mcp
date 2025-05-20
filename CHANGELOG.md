@@ -592,5 +592,7 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 - **Impact & Current Status**:
   - These changes address test failures stemming from the `APIClient` refactoring.
-  - The test suite now has 7 failing snapshot tests. These failures are expected due to the updated mock data not matching existing (outdated) snapshots. The next logical step for these tests would be to update the snapshots with `pytest --snapshot-update`.
+  - Updated snapshot tests with `pytest --snapshot-update` to match the current mock data structure.
+  - Fixed the `test_server_startup_initializes_async_client` test to correctly match the actual log message from `APIClient.startup()`.
+  - All 92 tests in the test suite are now passing.
 

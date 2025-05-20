@@ -97,7 +97,7 @@ async def test_server_startup_initializes_async_client(
         "APIClient's client should be an httpx.AsyncClient after startup"
     )
     assert server.api_client._client.timeout.read == 30.0
-    mock_api_client_logger_info.assert_any_call("APIClient's httpx.AsyncClient initialized.")
+    mock_api_client_logger_info.assert_any_call(f"APIClient's httpx.AsyncClient started with base_url: {server.base_url} and timeout: {server.api_client.client_timeout}s")
     mock_server_logger_info.assert_any_call("cBioPortal MCP Server started, APIClient initialized.")
         
     # Clean up the client created during this test

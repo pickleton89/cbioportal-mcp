@@ -1,6 +1,6 @@
 # cBioPortal MCP Server Refactoring Plan
 
-> **Current State (2025-05-20)**: The project has made significant progress with testing (92 passing tests) and some refactoring. This plan has been updated to reflect the current state and guide the remaining refactoring work.
+> **Current State (2025-05-20)**: The project has made significant progress with testing (92 passing tests, all now passing) and some refactoring. The APIClient has been extracted, and all tests have been updated to work with this new structure. This plan has been updated to reflect the current state and guide the remaining refactoring work.
 
 ## 1. Project Structure
 ```
@@ -25,10 +25,10 @@ cbioportal_mcp/
 ## 2. Phase 1: Core Components (Day 1-2)
 
 ### 2.1. API Client (`api_client.py`)
-- [ ] Create `APIClient` class
-- [ ] Move `_make_api_request` logic
+- [x] Create `APIClient` class
+- [x] Move `_make_api_request` logic
 - [ ] Add retry mechanism
-- [ ] Implement request/response logging
+- [x] Implement request/response logging
 
 ### 2.2. Utilities (`utils/`)
 - [ ] `pagination.py`: Move pagination logic
@@ -75,9 +75,11 @@ cbioportal_mcp/
 - [x] Refined `tests/test_server_lifecycle.py`:
   - [x] Updated logger mocks for `APIClient` and `CBioPortalMCPServer`.
   - [x] Adjusted log message assertions for startup/shutdown.
+  - [x] Fixed `test_server_startup_initializes_async_client` to match actual log message from `APIClient.startup()`.
 - [x] Refined `tests/test_snapshot_responses.py`:
   - [x] Corrected mock targets to `server_instance.api_client.make_api_request`.
   - [x] Overhauled mocking strategy for paginated list snapshot tests to align with `APIClient` and `paginate_results` utility behavior.
+  - [x] Updated snapshots with `pytest --snapshot-update` to match the current mock data structure.
 - [x] Test files include:
   - `test_server_lifecycle.py`
   - `test_pagination.py`
@@ -119,6 +121,8 @@ cbioportal_mcp/
    - [x] Comprehensive test suite in place
    - [x] Core functionality tested
    - [x] Error handling validated
+   - [x] All 92 tests passing
+   - [x] APIClient extraction complete
 
 2. **Incremental Refactoring**
    - [ ] Refactor one module at a time
@@ -127,7 +131,7 @@ cbioportal_mcp/
    - [ ] Ensure all tests pass after each change
 
 3. **Documentation Updates**
-   - [ ] Update CHANGELOG.md for each major change
+   - [x] Update CHANGELOG.md for each major change
    - [ ] Document new module structure
    - [ ] Update README with new architecture
 
