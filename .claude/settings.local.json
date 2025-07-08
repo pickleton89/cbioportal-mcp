@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv run:*)",
+      "Bash(rm:*)",
+      "mcp__graphiti__add_memory",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(git commit:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(uv add:*)",
+      "Bash(timeout 5 uv run:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
+    ],
+    "deny": []
+  }
+}

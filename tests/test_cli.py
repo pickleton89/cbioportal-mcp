@@ -14,17 +14,31 @@ sys.path.insert(0, parent_dir)
 
 # Import the main function and other necessary components from cbioportal_server
 from cbioportal_server import main as cbioportal_main, CBioPortalMCPServer  # noqa: E402
+from config import Configuration  # noqa: E402
 
 @pytest.mark.asyncio
 async def test_main_default_args(mocker):
     """Test main function with default arguments."""
     # Mock command line arguments to simulate no arguments passed
     mock_args = argparse.Namespace(
-        base_url="https://www.cbioportal.org/api",
-        transport="stdio",
-        log_level="INFO"
+        config=None,
+        create_example_config=None,
+        base_url=None,
+        transport=None,
+        port=None,
+        log_level=None
     )
     mocker.patch('argparse.ArgumentParser.parse_args', return_value=mock_args)
+
+    # Mock configuration loading
+    mock_config = MagicMock(spec=Configuration)
+    mock_config.get.side_effect = lambda path: {
+        'logging.level': 'INFO',
+        'server.base_url': 'https://www.cbioportal.org/api',
+        'server.transport': 'stdio',
+        'server.client_timeout': 480.0
+    }.get(path)
+    mocker.patch('cbioportal_server.load_config', return_value=mock_config)
 
     # Mock the server class and its MCP run method
     mock_server_instance = MagicMock(spec=CBioPortalMCPServer)
@@ -37,10 +51,10 @@ async def test_main_default_args(mocker):
     mock_mcp_run = mocker.async_stub(name='mock_mcp_run_stdio')
     mock_server_instance.mcp.run_async = mock_mcp_run
 
-    # Mock logging
-    mock_logging_basic_config = mocker.patch('logging.basicConfig')
+    # Mock logging setup
+    mock_setup_logging = mocker.patch('cbioportal_server.setup_logging')
     mock_cbioportal_logger = MagicMock()
-    mock_get_logger = mocker.patch('logging.getLogger')
+    mock_get_logger = mocker.patch('cbioportal_server.get_logger')
     mock_get_logger.return_value = mock_cbioportal_logger
 
     # Mock signal handling at a higher level
@@ -50,15 +64,11 @@ async def test_main_default_args(mocker):
     await cbioportal_main() # Corrected to use alias
 
     # Assertions
-    mock_cbioportal_server_class.assert_called_once_with(base_url="https://www.cbioportal.org/api")
-    mock_logging_basic_config.assert_called_once_with(
-        level="INFO",
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[mocker.ANY]  # Check for any StreamHandler instance
-    )
+    mock_cbioportal_server_class.assert_called_once_with(config=mock_config)
+    mock_setup_logging.assert_called_once_with(level="INFO")
     mock_get_logger.assert_any_call('cbioportal_server')
     assert mock_cbioportal_logger.info.call_count >= 2 # At least for starting and shutdown
-    mock_cbioportal_logger.info.assert_any_call("Starting cBioPortal MCP Server with transport: stdio")
+    mock_cbioportal_logger.info.assert_any_call("Using transport: stdio")
     mock_cbioportal_logger.info.assert_any_call("cBioPortal MCP Server has shut down.")
     # Updated assertion to match the new run_async method call instead of the old run method
     mock_mcp_run.assert_called_once_with(transport="stdio")

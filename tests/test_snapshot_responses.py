@@ -1,19 +1,18 @@
 # tests/test_snapshot_responses.py
 import pytest
-import httpx
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 from syrupy.assertion import SnapshotAssertion
 
 from cbioportal_server import CBioPortalMCPServer
 
 @pytest.fixture
-def server_instance(mocker):
-    """Provides a CBioPortalMCPServer instance with a mocked HTTP client."""
-    mock_client = MagicMock(spec=httpx.AsyncClient)
-    server = CBioPortalMCPServer()
-    server._client = mock_client # type: ignore
-    return server
+def server_instance(cbioportal_server_instance): # Use the standard fixture from conftest
+    """Provides a CBioPortalMCPServer instance."""
+    # The cbioportal_server_instance fixture from conftest.py already provides
+    # a server with an initialized APIClient. We will mock the APIClient's
+    # make_api_request method directly in each test.
+    return cbioportal_server_instance
 
 @pytest.mark.asyncio
 async def test_get_study_details_snapshot(server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker):
@@ -57,7 +56,7 @@ async def test_get_study_details_snapshot(server_instance: CBioPortalMCPServer, 
     
     # Configure the mock client's _make_api_request method
     mock_api_request = AsyncMock(return_value=mock_response_data)
-    server_instance._make_api_request = mock_api_request # type: ignore
+    server_instance.api_client.make_api_request = mock_api_request # type: ignore
 
     response = await server_instance.get_study_details(study_id=study_id_to_test)
     
@@ -118,25 +117,13 @@ async def test_get_cancer_studies_snapshot(server_instance: CBioPortalMCPServer,
         }
     ]
     
-    mock_response_with_pagination = {
-        "items": mock_studies_data,
-        "pagination": {
-            "page_number": 0,
-            "page_size": 2,
-            "total_items": 100, # Assuming there are 100 total studies for this mock
-            "total_pages": 50,
-            "sort_by": "studyId",
-            "direction": "ASC",
-            "has_more": True
-        }
-    }
-    
     # Configure the mock client's _make_api_request method
     # We need to be careful if other tests also mock _make_api_request. 
     # For simplicity here, we are directly setting it. 
     # In a larger test suite, consider using mocker.patch.object for more targeted mocking.
-    mock_api_request = AsyncMock(return_value=mock_response_with_pagination) # This mock is for the _paginate_results helper
-    server_instance._paginate_results = mock_api_request # type: ignore
+    # Mock the api_client.make_api_request for the first page call
+    mock_api_request = AsyncMock(return_value=mock_studies_data)
+    server_instance.api_client.make_api_request = mock_api_request # type: ignore
 
     response = await server_instance.get_cancer_studies(page_number=0, page_size=2)
     
@@ -174,23 +161,9 @@ async def test_get_molecular_profiles_snapshot(server_instance: CBioPortalMCPSer
             "sortOrder": 10
         }
     ]
-    
-    mock_response_with_pagination = {
-        "items": mock_profiles_data,
-        "pagination": {
-            "page_number": 0,
-            "page_size": 2,
-            "total_items": 5, # Assuming 5 total profiles for this mock
-            "total_pages": 3,
-            "sort_by": "molecularProfileId",
-            "direction": "ASC",
-            "has_more": True
-        }
-    }
-    
-    # Mock the _paginate_results helper method
-    mock_paginate_request = AsyncMock(return_value=mock_response_with_pagination)
-    server_instance._paginate_results = mock_paginate_request # type: ignore
+    # Mock the api_client.make_api_request for the first page call
+    mock_api_request = AsyncMock(return_value=mock_profiles_data)
+    server_instance.api_client.make_api_request = mock_api_request # type: ignore
 
     response = await server_instance.get_molecular_profiles(study_id=study_id_to_test, page_number=0, page_size=2)
     
@@ -216,23 +189,9 @@ async def test_get_cancer_types_snapshot(server_instance: CBioPortalMCPServer, s
             "parentCancerTypeId": "bladder"
         }
     ]
-    
-    mock_response_with_pagination = {
-        "items": mock_cancer_types_data,
-        "pagination": {
-            "page_number": 0,
-            "page_size": 2,
-            "total_items": 50, # Assuming 50 total cancer types for this mock
-            "total_pages": 25,
-            "sort_by": "cancerTypeId",
-            "direction": "ASC",
-            "has_more": True
-        }
-    }
-    
-    # Mock the _paginate_results helper method
-    mock_paginate_request = AsyncMock(return_value=mock_response_with_pagination)
-    server_instance._paginate_results = mock_paginate_request # type: ignore
+    # Mock the api_client.make_api_request for the first page call
+    mock_api_request = AsyncMock(return_value=mock_cancer_types_data)
+    server_instance.api_client.make_api_request = mock_api_request # type: ignore
 
     response = await server_instance.get_cancer_types(page_number=0, page_size=2)
     
@@ -260,23 +219,9 @@ async def test_get_samples_in_study_snapshot(server_instance: CBioPortalMCPServe
             "cancerType": "Adrenocortical Carcinoma"
         }
     ]
-    
-    mock_response_with_pagination = {
-        "items": mock_samples_data,
-        "pagination": {
-            "page_number": 0,
-            "page_size": 2,
-            "total_items": 92, # Assuming 92 total samples for this study in mock
-            "total_pages": 46,
-            "sort_by": "sampleId",
-            "direction": "ASC",
-            "has_more": True
-        }
-    }
-    
-    # Mock the _paginate_results helper method
-    mock_paginate_request = AsyncMock(return_value=mock_response_with_pagination)
-    server_instance._paginate_results = mock_paginate_request # type: ignore
+    # Mock the api_client.make_api_request for the first page call
+    mock_api_request = AsyncMock(return_value=mock_samples_data)
+    server_instance.api_client.make_api_request = mock_api_request # type: ignore
 
     response = await server_instance.get_samples_in_study(study_id=study_id_to_test, page_number=0, page_size=2)
     
@@ -304,23 +249,9 @@ async def test_search_genes_snapshot(server_instance: CBioPortalMCPServer, snaps
             "tumorSuppressor": True
         }
     ]
-    
-    mock_response_with_pagination = {
-        "items": mock_genes_data,
-        "pagination": {
-            "page_number": 0,
-            "page_size": 2,
-            "total_items": 10, # Assuming 10 total matching genes for this mock
-            "total_pages": 5,
-            "sort_by": "hugoGeneSymbol", # Typical sort for gene searches
-            "direction": "ASC",
-            "has_more": True
-        }
-    }
-    
-    # Mock the _paginate_results helper method
-    mock_paginate_request = AsyncMock(return_value=mock_response_with_pagination)
-    server_instance._paginate_results = mock_paginate_request # type: ignore
+    # Mock the api_client.make_api_request for the first page call
+    mock_api_request = AsyncMock(return_value=mock_genes_data)
+    server_instance.api_client.make_api_request = mock_api_request # type: ignore
 
     response = await server_instance.search_genes(keyword=keyword_to_search, page_number=0, page_size=2)
     
@@ -462,7 +393,7 @@ async def test_get_mutations_in_gene_snapshot(server_instance: CBioPortalMCPServ
 
     # Mock the _make_api_request method to return different values on subsequent calls
     mock_api_call = AsyncMock(side_effect=[mock_molecular_profiles_list, mock_mutations_data])
-    server_instance._make_api_request = mock_api_call # type: ignore
+    server_instance.api_client.make_api_request = mock_api_call # type: ignore
 
     response = await server_instance.get_mutations_in_gene(
         study_id=study_id_to_test,
@@ -522,7 +453,7 @@ async def test_get_clinical_data_snapshot(server_instance: CBioPortalMCPServer, 
 
     # Mock the _make_api_request method as get_clinical_data calls it directly
     mock_api_call = AsyncMock(return_value=mock_flat_clinical_data_from_api)
-    server_instance._make_api_request = mock_api_call # type: ignore
+    server_instance.api_client.make_api_request = mock_api_call # type: ignore
 
     response = await server_instance.get_clinical_data(
         study_id=study_id_to_test
@@ -576,7 +507,7 @@ async def test_get_clinical_data_specific_attributes_snapshot(server_instance: C
 
     # Mock the _make_api_request method
     mock_api_call = AsyncMock(return_value=mock_flat_clinical_data_from_api_specific)
-    server_instance._make_api_request = mock_api_call # type: ignore
+    server_instance.api_client.make_api_request = mock_api_call # type: ignore
 
     response = await server_instance.get_clinical_data(
         study_id=study_id_to_test,
@@ -632,8 +563,8 @@ async def test_get_gene_panels_for_study_snapshot(server_instance, snapshot, moc
 
     # Mock the _make_api_request method
     mocker.patch.object(
-        server_instance,
-        '_make_api_request',
+        server_instance.api_client,
+        'make_api_request',
         return_value=mock_response
     )
 
@@ -662,8 +593,8 @@ async def test_get_gene_panel_details_snapshot(server_instance, snapshot, mocker
 
     # Mock the _make_api_request method
     mocker.patch.object(
-        server_instance,
-        '_make_api_request',
+        server_instance.api_client,
+        'make_api_request',
         return_value=mock_response
     )
 

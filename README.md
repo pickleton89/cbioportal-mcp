@@ -1,6 +1,7 @@
 # cBioPortal MCP Server
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![uv](https://img.shields.io/badge/uv-compatible-blue.svg)](https://github.com/astral-sh/uv)
 [![MCP](https://img.shields.io/badge/MCP-2.0+-green.svg)](https://github.com/model-context-protocol/mcp)
 [![FastMCP](https://img.shields.io/badge/FastMCP-compatible-orange.svg)](https://github.com/jlowin/fastmcp)
 
@@ -31,13 +32,31 @@ A high-performance async Model Context Protocol (MCP) server that enables AI ass
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- pip (Python package installer)
+- Python 3.10 or higher
+- uv (recommended) or pip (Python package installer)
 - Git (optional, for cloning the repository)
 
 ### Set Up Environment
 
-#### Option 1: Using venv and pip (standard method)
+#### Option 1: Using uv (recommended)
+
+[uv](https://github.com/astral-sh/uv) is a modern, high-performance Python package manager and environment manager that's significantly faster than pip.
+
+```bash
+# Install uv if you don't have it yet
+pipx install uv
+# Or with Homebrew
+# brew install uv
+
+# Clone the repository
+git clone https://github.com/pickleton89/cbioportal-mcp.git
+cd cbioportal-mcp
+
+# uv automatically creates a virtual environment and installs dependencies
+uv sync
+```
+
+#### Option 2: Using pip (traditional method)
 
 ```bash
 # Create a virtual environment
@@ -48,59 +67,14 @@ python -m venv cbioportal-mcp-env
 cbioportal-mcp-env\Scripts\activate
 # On macOS/Linux:
 source cbioportal-mcp-env/bin/activate
-```
 
-##### Install Dependencies with pip
-
-```bash
-# Install the MCP SDK and FastMCP framework
-pip install mcp>=2.0.0
-
-# Install additional dependencies
-pip install httpx asyncio
-```
-
-#### Option 2: Using UV (faster alternative)
-
-[UV](https://github.com/astral-sh/uv) is a modern, high-performance Python package manager and environment manager that's significantly faster than pip.
-
-```bash
-# Install UV if you don't have it yet
-pipx install uv
-# Or with Homebrew
-# brew install uv
-
-# Create and activate a virtual environment with UV
-uv venv
-
-# Activate the environment
-# On Windows:
-.venv\Scripts\activate
-# On macOS/Linux:
-source .venv/bin/activate
-```
-
-##### Install Dependencies with UV
-
-```bash
-# Install the MCP SDK and FastMCP framework
-uv pip install mcp>=2.0.0
-
-# Install additional dependencies
-uv pip install httpx asyncio
-```
-
-### Download the Server
-
-Download the `cbioportal_server.py` script to your working directory or clone this repository:
-
-```bash
-git clone https://github.com/pickleton89/cbioportal-mcp.git
-cd cbioportal-mcp
+# Install dependencies
+pip install mcp>=1.0.0,<=1.8.0 httpx>=0.24.0 fastmcp>=0.1.0
 ```
 
 ### Make the Script Executable (Linux/macOS only)
 
+If using pip installation:
 ```bash
 chmod +x cbioportal_server.py
 ```
@@ -109,9 +83,20 @@ chmod +x cbioportal_server.py
 
 ### Starting the Server
 
-To start the server with default settings:
+#### With uv (recommended)
 
 ```bash
+# Start the server with default settings
+uv run python cbioportal_server.py
+
+# Or use the installed script
+uv run cbioportal-mcp
+```
+
+#### With traditional Python
+
+```bash
+# Start the server with default settings
 python cbioportal_server.py
 ```
 
@@ -122,11 +107,14 @@ This launches the server using the public cBioPortal API at `https://www.cbiopor
 Customize server behavior with command-line arguments:
 
 ```bash
-# Use a different cBioPortal API instance
+# Using uv
+uv run python cbioportal_server.py --base-url https://your-cbioportal-instance.org/api
+
+# Using traditional Python
 python cbioportal_server.py --base-url https://your-cbioportal-instance.org/api
 
 # Specify a different transport mechanism (only stdio supported currently)
-python cbioportal_server.py --transport stdio
+uv run python cbioportal_server.py --transport stdio
 ```
 
 ## Configuration
@@ -267,6 +255,19 @@ Potential improvements for future versions:
 - Add request retry mechanisms for more robust error handling
 - Implement more concurrent bulk operation methods for other endpoints
 
+### Updates and Maintenance
+
+To update dependencies:
+
+#### With uv (recommended)
+```bash
+uv sync --upgrade
+```
+
+#### With pip
+```bash
+pip install -U mcp
+```
 
 ## License
 

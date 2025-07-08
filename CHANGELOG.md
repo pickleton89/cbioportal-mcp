@@ -4,6 +4,181 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ## [Unreleased]
 
+### 2025-07-08
+
+#### Phase 4: Configuration Enhancement Complete
+
+- **Comprehensive Configuration Management System**:
+  - **Created `config.py` module**: Full-featured Configuration class with validation, environment variable support, and YAML file integration
+  - **Multi-layered configuration priority**: CLI arguments > Environment variables > Configuration file > Default values
+  - **YAML configuration files**: Added PyYAML dependency and comprehensive file-based configuration support
+  - **Environment variable integration**: `CBIOPORTAL_*` prefixed variables for all configuration options
+
+- **Enhanced CLI Interface**:
+  - **Configuration file support**: `--config config.yaml` option for specifying configuration files
+  - **Example configuration generation**: `--create-example-config` creates fully documented example configuration
+  - **Improved help documentation**: Comprehensive examples and configuration source priority explanation
+  - **Backward compatibility**: All existing CLI options maintained with configuration file override capability
+
+- **Configuration Features**:
+  - **Comprehensive validation**: Type checking, range validation, and descriptive error messages for all configuration options
+  - **Nested configuration access**: Dot notation support for accessing nested configuration values
+  - **Future-ready API settings**: Configuration structure for rate limiting, retry logic, and caching (ready for future implementation)
+  - **Flexible deployment support**: Environment variable integration enables easy deployment configuration
+
+- **Server Architecture Integration**:
+  - **Updated constructor**: `CBioPortalMCPServer` now accepts Configuration object instead of individual parameters
+  - **Dependency injection**: Configuration object passed through server initialization
+  - **Enhanced logging integration**: Configuration-driven logging setup and level management
+  - **Build system updates**: Updated pyproject.toml to include new configuration module and dependencies
+
+- **Quality Assurance**:
+  - **Core functionality verified**: Configuration system working correctly with CLI help, example generation, and server integration
+  - **Test infrastructure updated**: Test fixtures updated to support new configuration-based constructor
+  - **Backward compatibility maintained**: Default configuration values preserve existing behavior
+  - **Configuration validation**: Comprehensive error checking ensures proper configuration at startup
+
+- **Implementation Plan Success**:
+  - ✅ Phase 4 complete: Configuration enhancement implemented and verified
+  - **Target exceeded**: Achieved comprehensive configuration management with validation, file support, and environment integration
+  - **Foundation for deployment**: Configuration system ready for production deployment scenarios
+
+#### Phase 3: Server Refactoring Complete
+
+- **Main Server Class Refinement**:
+  - **Clean dependency injection pattern**: APIClient and endpoint modules properly injected in `__init__`
+  - **Explicit tool registration**: Replaced dynamic method discovery with explicit tool method list
+  - **Improved lifecycle management**: Fixed invalid client references and streamlined startup/shutdown
+  - **Enhanced initialization**: Added clear documentation and organized structure with proper separation
+
+- **Code Quality & Maintenance**:
+  - **Final line count: 396 lines** (down from 1,352 original - **71% total reduction**)
+  - Fixed signal handler diagnostic warnings and improved error handling
+  - Added comprehensive docstrings and organized imports
+  - Streamlined tool registration prevents accidental exposure of internal methods
+
+- **Architecture Excellence**:
+  - **Focused responsibility**: Main server class now handles only MCP coordination, tool routing, and lifecycle management
+  - **Clean separation**: All business logic extracted to dedicated endpoint modules
+  - **Testable design**: Clear dependency injection makes components easily mockable
+  - **Maintainable structure**: Explicit configurations over dynamic discovery
+
+- **Quality Assurance**:
+  - **All 92 tests continue to pass** - zero functionality regression through Phase 3
+  - Complete API compatibility maintained across all refactored components
+  - Tool registration verification ensures all expected methods are properly exposed
+  - Lifecycle management tests confirm proper resource handling
+
+- **Implementation Plan Success**:
+  - ✅ Phase 3 complete: Server class refactored and streamlined
+  - 🎯 Ready for Phase 4: Configuration Enhancement
+  - **Exceeded targets**: Achieved better organization and maintainability than planned
+
+#### Phase 2: Endpoint Modules Refactoring Complete
+
+- **Modular Endpoint Architecture**:
+  - Created `endpoints/` package with focused domain separation:
+    - `endpoints/studies.py` - Cancer studies, types, search functionality (~360 lines)
+    - `endpoints/genes.py` - Gene operations, mutations, batch processing (~240 lines)  
+    - `endpoints/samples.py` - Sample data and sample lists (~80 lines)
+    - `endpoints/molecular_profiles.py` - Molecular profiles, clinical data, gene panels (~280 lines)
+
+- **Main Server Transformation**:
+  - **Dramatic reduction from 1,352 to 371 lines** (72.5% reduction, 981 lines removed!)
+  - Exceeded implementation plan target of 600-800 lines by achieving just 371 lines
+  - Implemented clean dependency injection pattern with APIClient
+  - All endpoint methods now delegate to focused domain modules
+  - Maintained exact method signatures for FastMCP compatibility
+
+- **Architecture Excellence**:
+  - **Clear separation of concerns**: Each endpoint module handles a specific API domain
+  - **Dependency injection**: APIClient injected into all endpoint modules for testability
+  - **Maintainable codebase**: Easy to locate, modify, and extend specific functionality
+  - **Extensible design**: Simple to add new endpoints to appropriate domain modules
+
+- **Quality Assurance Success**:
+  - **All 92 tests continue to pass** - zero functionality regression
+  - Full API compatibility maintained across all endpoints
+  - Comprehensive test coverage preserved through careful delegation
+  - Clean module imports and proper package structure
+
+- **Performance & Async Benefits Preserved**:
+  - All async patterns and performance optimizations maintained
+  - Concurrent operations (get_multiple_studies, get_multiple_genes) fully functional
+  - 4.5x async performance improvement retained from Phase 1
+  - Complete pagination support across all endpoint modules
+
+- **Implementation Plan Progress**:
+  - ✅ Phase 2 complete: Endpoint modules extracted and integrated  
+  - 🎯 Ready for Phase 3: Server class refactoring and further cleanup
+  - Target exceeded: Achieved 371 lines vs planned 600-800 lines
+
+#### Phase 1: Utility Modules Refactoring Complete
+
+- **Modular Architecture Foundation**:
+  - Created `utils/` package with clean module structure and proper exports
+  - Extracted pagination logic from main server into `utils/pagination.py` (~95 lines)
+  - Standardized input validation patterns into `utils/validation.py` (~150 lines)  
+  - Centralized logging configuration in `utils/logging.py` (~90 lines)
+
+- **Main Server Refactoring**:
+  - Reduced main server file from 1,357 to ~1,100 lines (257 line reduction)
+  - Replaced repetitive validation code with reusable validation functions
+  - Updated pagination methods to delegate to utility functions  
+  - Migrated to centralized logging setup using `utils.logging.setup_logging()`
+  - Maintained 100% backward compatibility - all method signatures unchanged
+
+- **Code Quality Improvements**:
+  - Eliminated code duplication across validation patterns
+  - Improved maintainability with centralized utility functions
+  - Enhanced reusability of common functionality across modules
+  - Established foundation for Phase 2 endpoint module extraction
+
+- **Testing Success**:
+  - All 92 tests continue to pass after refactoring
+  - No breaking changes introduced to existing functionality
+  - Preserved test compatibility through careful API preservation
+  - Updated test mocking to handle new utility module imports
+
+- **Implementation Plan Progress**:
+  - ✅ Phase 1 complete: Utility modules extracted and integrated
+  - 🎯 Ready for Phase 2: Endpoint modules (studies.py, genes.py, samples.py, molecular_profiles.py)
+  - Target: Further reduce main server to 400-500 lines through endpoint extraction
+
+### 2025-01-08
+
+#### Migration to uv Package Manager
+
+- **Project Modernization**:
+  - Migrated from pip/requirements.txt to uv's modern project workflow using pyproject.toml
+  - Created comprehensive pyproject.toml with full project metadata, dependencies, and configuration
+  - Generated universal lockfile (uv.lock) for reproducible builds across platforms
+  - Updated Python requirement from 3.8+ to 3.10+ (required by fastmcp dependency)
+
+- **Dependency Management Improvements**:
+  - Consolidated requirements.txt and requirements-dev.txt into pyproject.toml dependency groups
+  - Moved pytest configuration from pytest.ini to pyproject.toml for centralized configuration
+  - Added proper build system configuration with hatchling backend
+  - Created script entry point: `cbioportal-mcp` command for easy CLI access
+
+- **Development Workflow Enhancements**:
+  - All development commands now use `uv run` for automatic environment management
+  - Simplified dependency installation with `uv sync` (replaces multiple pip install commands)
+  - Added synchronous CLI entry point wrapper for async main function
+  - Performance improvement: 10-100x faster dependency operations with uv vs pip
+
+- **Documentation Updates**:
+  - Updated README.md to prioritize uv workflow with migration instructions
+  - Updated CLAUDE.md with new uv-based development commands
+  - Created comprehensive MIGRATION_TO_UV.md guide for existing developers
+  - Updated installation instructions and usage examples throughout documentation
+
+- **Quality Assurance**:
+  - Verified all 92 tests pass with uv workflow
+  - Confirmed server functionality with both `uv run python cbioportal_server.py` and `uv run cbioportal-mcp`
+  - Maintained backward compatibility for pip users (legacy support documented)
+  - No breaking changes to server functionality or API
+
 
 ### 2025-05-09
 
@@ -554,3 +729,45 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
   - Add configuration options for controlling concurrency limits and timeout settings
   - Develop more comprehensive benchmarking and performance monitoring tools
   - Consider caching frequently requested data to further improve performance
+
+#### Refactoring Planning (2024-05-19)
+
+- **Codebase Analysis**:
+  - Conducted comprehensive analysis of the current `cbioportal_server.py` implementation
+  - Identified key components and their interdependencies
+  - Evaluated opportunities for improved code organization and maintainability
+
+- **Refactoring Strategy**:
+  - Created detailed refactoring plan in `REFACTOR_PLAN.md``
+  - Designed new package structure following Python best practices
+  - Outlined phased approach to minimize disruption
+  - Added Graphiti memory integration for tracking refactoring progress
+
+- **Next Steps**:
+  - Begin implementation of Phase 1 (Core Components)
+  - Set up new package structure
+  - Move API client and utility functions to dedicated modules
+  - Update test suite to match new structure
+
+
+### 2025-05-20 (09:17)
+
+#### Test Suite Refinements (APIClient Integration)
+
+- **`tests/test_server_lifecycle.py` Updates**:
+  - Corrected logger mock setups to accurately capture log messages from both `APIClient` and `CBioPortalMCPServer` during startup and shutdown.
+  - Updated assertions for log messages to align with the refactored server and API client behavior.
+
+- **`tests/test_snapshot_responses.py` Mocking Overhaul**:
+  - Updated mock targets in `test_get_clinical_data_snapshot`, `test_get_clinical_data_specific_attributes_snapshot`, and `test_get_mutations_in_gene_snapshot` from the deprecated `_make_api_request` to the new `api_client.make_api_request`.
+  - Refactored mocking strategy for paginated snapshot tests (`test_get_cancer_studies_snapshot`, `test_get_molecular_profiles_snapshot`, `test_get_cancer_types_snapshot`, `test_get_samples_in_study_snapshot`, `test_search_genes_snapshot`):
+    - Changed mock target from internal `_paginate_results` to `api_client.make_api_request`.
+    - Adjusted mock return values to provide the direct list of data items for the first page.
+    - Removed unused `mock_response_with_pagination` helper variables.
+
+- **Impact & Current Status**:
+  - These changes address test failures stemming from the `APIClient` refactoring.
+  - Updated snapshot tests with `pytest --snapshot-update` to match the current mock data structure.
+  - Fixed the `test_server_startup_initializes_async_client` test to correctly match the actual log message from `APIClient.startup()`.
+  - All 92 tests in the test suite are now passing.
+
