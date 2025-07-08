@@ -27,6 +27,7 @@ dependencies = [
     "mcp>=1.0.0,<=1.8.0",
     "httpx>=0.24.0",
     "fastmcp>=0.1.0",
+    "pyyaml>=6.0.2",
 ]
 
 [project.urls]
@@ -42,6 +43,9 @@ cbioportal-mcp = "cbioportal_server:cli_main"
 include = [
     "cbioportal_server.py",
     "api_client.py",
+    "config.py",
+    "utils/",
+    "endpoints/",
 ]
 
 [dependency-groups]

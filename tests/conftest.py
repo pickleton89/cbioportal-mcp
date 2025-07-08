@@ -6,11 +6,21 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from cbioportal_server import CBioPortalMCPServer
+from config import Configuration
 
 @pytest.fixture(scope="session")
-def cbioportal_server_instance():
+def test_configuration():
+    """Provides a test configuration."""
+    config = Configuration()
+    # Override with test values
+    config._config['server']['base_url'] = "https://www.cbioportal.org/api"
+    config._config['server']['client_timeout'] = 30.0
+    return config
+
+@pytest.fixture(scope="session")
+def cbioportal_server_instance(test_configuration):
     """Provides a CBioPortalMCPServer instance for tests."""
-    return CBioPortalMCPServer(base_url="https://www.cbioportal.org/api", client_timeout=30.0)
+    return CBioPortalMCPServer(config=test_configuration)
 
 @pytest.fixture(scope="session")
 def mock_studies_data():
@@ -137,8 +147,12 @@ def mock_gene_batch_response_page1():
 @pytest.fixture
 async def cbioportal_server_instance_unstarted():
     """Provides a CBioPortalMCPServer instance without calling startup/shutdown."""
-    # Ensure CBioPortalMCPServer is imported; it should be from the top of conftest.py
-    server = CBioPortalMCPServer(base_url="http://mocked.cbioportal.org/api", client_timeout=30.0)
+    # Create test configuration
+    config = Configuration()
+    config._config['server']['base_url'] = "http://mocked.cbioportal.org/api"
+    config._config['server']['client_timeout'] = 30.0
+    
+    server = CBioPortalMCPServer(config=config)
     yield server
     # No automatic startup/shutdown here, tests will manage if needed.
     # If a test using this fixture calls server.startup(), it should handle shutdown if necessary,

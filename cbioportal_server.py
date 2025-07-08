@@ -26,6 +26,7 @@ from utils.validation import (
 )
 from utils.logging import setup_logging, get_logger
 from endpoints import StudiesEndpoints, GenesEndpoints, SamplesEndpoints, MolecularProfilesEndpoints
+from config import load_config, create_example_config, Configuration
 
 # Ensure project root is in sys.path for utility imports if needed
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -37,11 +38,13 @@ logger = get_logger(__name__)
 class CBioPortalMCPServer:
     """MCP Server for interacting with the cBioPortal API."""
 
-    def __init__(self, base_url: str = "https://www.cbioportal.org/api", client_timeout: float = 480.0):
+    def __init__(self, config: Configuration):
         """Initialize the cBioPortal MCP Server with dependency injection."""
-        self.base_url = base_url.rstrip('/')
+        self.config = config
+        self.base_url = config.get('server.base_url').rstrip('/')
         
         # Initialize API client
+        client_timeout = config.get('server.client_timeout')
         self.api_client = APIClient(base_url=self.base_url, client_timeout=client_timeout)
         
         # Initialize endpoint modules with dependency injection
@@ -322,45 +325,118 @@ def setup_signal_handlers():
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Run the cBioPortal MCP Server.")
+    parser = argparse.ArgumentParser(
+        description="Run the cBioPortal MCP Server.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Configuration Sources (in priority order):
+  1. CLI arguments (highest priority)
+  2. Environment variables (CBIOPORTAL_*)
+  3. Configuration file (--config)
+  4. Default values (lowest priority)
+
+Examples:
+  %(prog)s                                    # Use defaults
+  %(prog)s --config config.yaml             # Use config file
+  %(prog)s --base-url https://custom.org/api # Override base URL
+  %(prog)s --create-example-config           # Create example config
+        """
+    )
+    
+    # Configuration file support
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Path to YAML configuration file.",
+    )
+    parser.add_argument(
+        "--create-example-config",
+        type=str,
+        nargs='?',
+        const="cbioportal-mcp-config.example.yaml",
+        help="Create an example configuration file and exit. Optionally specify filename.",
+    )
+    
+    # Server configuration
     parser.add_argument(
         "--base-url",
-        default="https://www.cbioportal.org/api",
-        help="Base URL for the cBioPortal API.",
+        help="Base URL for the cBioPortal API. (overrides config file)",
     )
     parser.add_argument(
         "--transport",
-        default="stdio",
-        choices=["stdio"],  # Limiting to stdio for now to simplify
-        help="Transport protocol for MCP communication (currently only 'stdio' supported).",
+        choices=["stdio"],
+        help="Transport protocol for MCP communication. (overrides config file)",
     )
-    # parser.add_argument(
-    #     "--port",
-    #     type=int,
-    #     default=8000,
-    #     help="Port for WebSocket transport (if used)."
-    # )
+    parser.add_argument(
+        "--port",
+        type=int,
+        help="Port for WebSocket transport (for future use). (overrides config file)",
+    )
+    
+    # Logging configuration
     parser.add_argument(
         "--log-level",
-        default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Set the logging level.",
+        help="Set the logging level. (overrides config file)",
     )
 
     args = parser.parse_args()
 
-    # Configure logging using utils
-    setup_logging(level=args.log_level)
+    # Handle example config creation
+    if args.create_example_config:
+        try:
+            create_example_config(args.create_example_config)
+            print(f"Example configuration created: {args.create_example_config}")
+            print(f"Edit the file and use: {parser.prog} --config {args.create_example_config}")
+            return
+        except Exception as e:
+            print(f"Error creating example config: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    # Load configuration
+    try:
+        config = load_config(args.config)
+        
+        # Update config with CLI arguments
+        cli_args = {}
+        if args.base_url is not None:
+            cli_args['base_url'] = args.base_url
+        if args.transport is not None:
+            cli_args['transport'] = args.transport
+        if args.port is not None:
+            cli_args['port'] = args.port
+        if args.log_level is not None:
+            cli_args['log_level'] = args.log_level
+            
+        if cli_args:
+            config.update_from_cli_args(cli_args)
+            
+    except Exception as e:
+        print(f"Configuration error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Configure logging using the loaded configuration
+    log_level = config.get('logging.level')
+    setup_logging(level=log_level)
     global logger  # Use global logger after setup
     logger = get_logger(__name__)  # Re-assign to get logger with new config
 
     setup_signal_handlers()  # Setup signal handlers for graceful shutdown
 
-    server_instance = CBioPortalMCPServer(base_url=args.base_url)
+    # Log configuration info
+    logger.info(f"Starting cBioPortal MCP Server")
+    logger.info(f"Base URL: {config.get('server.base_url')}")
+    logger.info(f"Transport: {config.get('server.transport')}")
+    logger.info(f"Client timeout: {config.get('server.client_timeout')}s")
+    if args.config:
+        logger.info(f"Configuration file: {args.config}")
 
-    logger.info(f"Starting cBioPortal MCP Server with transport: {args.transport}")
+    server_instance = CBioPortalMCPServer(config=config)
 
-    if args.transport.lower() == "stdio":
+    transport = config.get('server.transport')
+    logger.info(f"Using transport: {transport}")
+
+    if transport.lower() == "stdio":
         try:
             # Use run_async directly to avoid creating a new event loop
             # This is needed for compatibility with Claude Desktop which already has an event loop
@@ -379,7 +455,7 @@ async def main():
                 await server_instance.shutdown()
             # For now, assuming FastMCP handles it.
     else:
-        logger.error(f"Unsupported transport: {args.transport}")
+        logger.error(f"Unsupported transport: {transport}")
         sys.exit(1)
 
     logger.info("cBioPortal MCP Server has shut down.")
