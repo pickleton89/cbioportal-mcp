@@ -1,26 +1,19 @@
 #!/usr/bin/env python3
 # Tests for input validation in the cBioPortal MCP Server
 
-import sys
-import os
 import pytest
 
-# Add the parent directory to the path so we can import the cbioportal_server module
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
-
-from cbioportal_server import CBioPortalMCPServer  # noqa: E402
+from cbioportal_server import CBioPortalMCPServer
 
 class TestInputValidation:
     """Tests for input validation of CBioPortalMCPServer methods."""
 
     @pytest.fixture(scope="class")
-    def server_instance(self):
+    def server_instance(self, cbioportal_server_instance):
         """Provides a CBioPortalMCPServer instance for the test class."""
         # No need to mock httpx.AsyncClient for input validation tests
         # as errors should be raised before API calls.
-        return CBioPortalMCPServer()
+        return cbioportal_server_instance
 
     @pytest.mark.parametrize(
         "page_number, page_size, expected_exception, error_match",
@@ -146,4 +139,3 @@ class TestInputValidation:
         with pytest.raises(expected_exception, match=error_match):
             await server_instance.search_studies(keyword=keyword, page_number=page_number, page_size=page_size)
 
-# TODO: Add input validation tests here

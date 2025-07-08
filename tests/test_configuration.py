@@ -1,18 +1,10 @@
 #!/usr/bin/env python3
 # Tests for server configuration in the cBioPortal MCP Server
 
-import sys
-import os
 import pytest
 
-# Add the parent directory to the path so we can import the cbioportal_server module
-# This assumes 'tests' is a subdirectory of the project root where 'cbioportal_server.py' resides.
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir) # This should be the project root
-sys.path.insert(0, parent_dir)
-
-from cbioportal_server import CBioPortalMCPServer  # noqa: E402
-from config import Configuration  # noqa: E402
+from cbioportal_server import CBioPortalMCPServer
+from config import Configuration
 
 
 @pytest.mark.asyncio

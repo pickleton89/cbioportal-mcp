@@ -4,13 +4,16 @@ Quick test script to verify the async methods are working correctly.
 """
 import asyncio
 from cbioportal_server import CBioPortalMCPServer
+from config import Configuration
 
 async def run_test():
     """Run a simple test of the key server methods."""
-    server = CBioPortalMCPServer(base_url="https://www.cbioportal.org/api")
+    # Create a configuration for the server (uses defaults including base URL)
+    config = Configuration()
+    server = CBioPortalMCPServer(config)
     
     # Create a mock for the API request
-    original_make_api_request = server._make_api_request
+    original_make_api_request = server.api_client.make_api_request
     
     async def mock_api_request(*args, **kwargs):
         # Return simple mock data
@@ -23,7 +26,7 @@ async def run_test():
         return []
     
     # Replace the API request with our mock
-    server._make_api_request = mock_api_request
+    server.api_client.make_api_request = mock_api_request
     
     # Test the methods we fixed
     print("Testing get_cancer_types...")
@@ -39,7 +42,7 @@ async def run_test():
     print(f"Result: {result}\n")
     
     # Restore original method
-    server._make_api_request = original_make_api_request
+    server.api_client.make_api_request = original_make_api_request
     
     print("All tests completed!")
 

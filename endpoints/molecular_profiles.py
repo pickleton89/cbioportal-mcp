@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from api_client import APIClient
+from constants import FETCH_ALL_PAGE_SIZE
 from utils.validation import (
     validate_page_params,
     validate_sort_params,
@@ -62,7 +63,7 @@ class MolecularProfilesEndpoints:
 
         try:
             if limit == 0:
-                page_size = 10000000
+                page_size = FETCH_ALL_PAGE_SIZE
             profiles = await self.api_client.make_api_request(
                 f"studies/{study_id}/molecular-profiles"
             )
@@ -113,7 +114,7 @@ class MolecularProfilesEndpoints:
             if sort_by:
                 api_call_params["sortBy"] = sort_by
             if limit == 0:
-                api_call_params["pageSize"] = 10000000
+                api_call_params["pageSize"] = FETCH_ALL_PAGE_SIZE
 
             clinical_data_from_api = []
             if attribute_ids:
@@ -148,8 +149,8 @@ class MolecularProfilesEndpoints:
                 len(clinical_data_from_api) == api_call_params["pageSize"]
             )
             if (
-                api_call_params["pageSize"] == 10000000
-                and len(clinical_data_from_api) < 10000000
+                api_call_params["pageSize"] == FETCH_ALL_PAGE_SIZE
+                and len(clinical_data_from_api) < FETCH_ALL_PAGE_SIZE
             ):
                 api_might_have_more = False
 

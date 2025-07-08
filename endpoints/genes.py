@@ -13,6 +13,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from api_client import APIClient
+from constants import FETCH_ALL_PAGE_SIZE
 from utils.validation import (
     validate_page_params,
     validate_sort_params,
@@ -59,7 +60,7 @@ class GenesEndpoints:
             if sort_by:
                 api_call_params["sortBy"] = sort_by
             if limit == 0:
-                api_call_params["pageSize"] = 10000000
+                api_call_params["pageSize"] = FETCH_ALL_PAGE_SIZE
 
             genes_from_api = await self.api_client.make_api_request(
                 "genes", params=api_call_params
@@ -69,8 +70,8 @@ class GenesEndpoints:
             api_might_have_more = len(genes_from_api) == api_call_params["pageSize"]
             # If 'fetch all' was intended and API returned less than max fetch size, then it's definitely the end.
             if (
-                api_call_params["pageSize"] == 10000000
-                and len(genes_from_api) < 10000000
+                api_call_params["pageSize"] == FETCH_ALL_PAGE_SIZE
+                and len(genes_from_api) < FETCH_ALL_PAGE_SIZE
             ):
                 api_might_have_more = False
 
@@ -260,7 +261,7 @@ class GenesEndpoints:
             if sort_by:
                 api_call_params["sortBy"] = sort_by
             if limit == 0:
-                api_call_params["pageSize"] = 10000000
+                api_call_params["pageSize"] = FETCH_ALL_PAGE_SIZE
 
             if str(gene_id).isdigit():
                 api_call_params["entrezGeneId"] = gene_id
@@ -290,8 +291,8 @@ class GenesEndpoints:
 
             api_might_have_more = len(mutations_from_api) == api_call_params["pageSize"]
             if (
-                api_call_params["pageSize"] == 10000000
-                and len(mutations_from_api) < 10000000
+                api_call_params["pageSize"] == FETCH_ALL_PAGE_SIZE
+                and len(mutations_from_api) < FETCH_ALL_PAGE_SIZE
             ):
                 api_might_have_more = False
 

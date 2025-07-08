@@ -9,6 +9,7 @@ Contains all sample-related endpoint methods:
 from typing import Any, Dict, List, Optional
 
 from api_client import APIClient
+from constants import FETCH_ALL_PAGE_SIZE
 from utils.validation import (
     validate_page_params,
     validate_sort_params,
@@ -51,7 +52,7 @@ class SamplesEndpoints:
             if sort_by:
                 api_call_params["sortBy"] = sort_by
             if limit == 0:
-                api_call_params["pageSize"] = 10000000
+                api_call_params["pageSize"] = FETCH_ALL_PAGE_SIZE
 
             samples_from_api = await self.api_client.make_api_request(
                 f"studies/{study_id}/samples", params=api_call_params
@@ -59,8 +60,8 @@ class SamplesEndpoints:
 
             api_might_have_more = len(samples_from_api) == api_call_params["pageSize"]
             if (
-                api_call_params["pageSize"] == 10000000
-                and len(samples_from_api) < 10000000
+                api_call_params["pageSize"] == FETCH_ALL_PAGE_SIZE
+                and len(samples_from_api) < FETCH_ALL_PAGE_SIZE
             ):
                 api_might_have_more = False
 

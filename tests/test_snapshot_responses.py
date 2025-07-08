@@ -605,4 +605,3 @@ async def test_get_gene_panel_details_snapshot(server_instance, snapshot, mocker
     # Assert the result against the snapshot
     assert result == snapshot
 
-# Remember to update CHANGELOG.md after tests pass

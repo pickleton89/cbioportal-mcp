@@ -1,17 +1,7 @@
 import pytest
 from unittest.mock import patch, call
-import sys
-import os
-
-# Add the parent directory to the path so we can import the cbioportal_server module
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from cbioportal_server import CBioPortalMCPServer
-
-
-@pytest.fixture
-def cbioportal_server_instance():
-    return CBioPortalMCPServer(base_url="https://www.cbioportal.org/api")
 
 
 @pytest.fixture

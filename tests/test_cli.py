@@ -1,20 +1,13 @@
 #!/usr/bin/env python3
 # Tests for CLI argument parsing and main function execution
 
-import sys
-import os
 import pytest
 import argparse
 from unittest.mock import MagicMock
 
-# Add the parent directory to the path so we can import the cbioportal_server module
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
-
 # Import the main function and other necessary components from cbioportal_server
-from cbioportal_server import main as cbioportal_main, CBioPortalMCPServer  # noqa: E402
-from config import Configuration  # noqa: E402
+from cbioportal_server import main as cbioportal_main, CBioPortalMCPServer
+from config import Configuration
 
 @pytest.mark.asyncio
 async def test_main_default_args(mocker):
