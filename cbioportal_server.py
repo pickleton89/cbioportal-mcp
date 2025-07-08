@@ -38,27 +38,30 @@ class CBioPortalMCPServer:
     """MCP Server for interacting with the cBioPortal API."""
 
     def __init__(self, base_url: str = "https://www.cbioportal.org/api", client_timeout: float = 480.0):
-        self.base_url = base_url.rstrip('/') # Ensure no trailing slash
-        # self.client = None # Removed
-        self.api_client = APIClient(base_url=self.base_url, client_timeout=client_timeout) # Added, using existing 480s timeout
+        """Initialize the cBioPortal MCP Server with dependency injection."""
+        self.base_url = base_url.rstrip('/')
         
-        # Initialize endpoint modules
+        # Initialize API client
+        self.api_client = APIClient(base_url=self.base_url, client_timeout=client_timeout)
+        
+        # Initialize endpoint modules with dependency injection
         self.studies = StudiesEndpoints(self.api_client)
         self.genes = GenesEndpoints(self.api_client)
         self.samples = SamplesEndpoints(self.api_client)
         self.molecular_profiles = MolecularProfilesEndpoints(self.api_client)
         
+        # Initialize FastMCP instance
         self.mcp = FastMCP(
             name="cBioPortal",
             description="Access cancer genomics data from cBioPortal",
             instructions="This server provides tools to access and analyze cancer genomics data from cBioPortal.",
         )
 
-        # Register lifecycle hooks
+        # Configure lifecycle hooks
         self.mcp.on_startup = [self.startup]
         self.mcp.on_shutdown = [self.shutdown]
 
-        # Register tools
+        # Register MCP tools
         self._register_tools()
 
     async def startup(self):
@@ -79,19 +82,40 @@ class CBioPortalMCPServer:
             logger.info("cBioPortal MCP Server APIClient was not available or already shut down.")
 
     def _register_tools(self):
-        """Dynamically register public methods as MCP tools."""
-        for name in dir(self):
-            if not name.startswith("_") and name not in [
-                "startup",
-                "shutdown",
-                "mcp",
-                "client",
-                "base_url",
-            ]:
-                method = getattr(self, name)
-                if callable(method):
-                    self.mcp.add_tool(method)
-                    logger.debug(f"Registered tool: {name}")
+        """Register tool methods as MCP tools."""
+        # List of methods to register as tools (explicitly defined)
+        tool_methods = [
+            # Pagination utilities
+            "paginate_results",
+            "collect_all_results",
+            # Studies endpoints
+            "get_cancer_studies",
+            "get_cancer_types", 
+            "search_studies",
+            "get_study_details",
+            "get_multiple_studies",
+            # Genes endpoints
+            "search_genes",
+            "get_genes", 
+            "get_multiple_genes",
+            "get_mutations_in_gene",
+            # Samples endpoints
+            "get_samples_in_study",
+            "get_sample_list_id",
+            # Molecular profiles endpoints
+            "get_molecular_profiles",
+            "get_clinical_data",
+            "get_gene_panels_for_study",
+            "get_gene_panel_details",
+        ]
+        
+        for method_name in tool_methods:
+            if hasattr(self, method_name):
+                method = getattr(self, method_name)
+                self.mcp.add_tool(method)
+                logger.debug(f"Registered tool: {method_name}")
+            else:
+                logger.warning(f"Method {method_name} not found for tool registration")
 
     async def paginate_results(
         self,
@@ -288,6 +312,7 @@ def handle_signal(signum, frame):
     logger.info(f"Signal {signum} received, initiating shutdown...")
     # Note: Actual shutdown logic might need to be coordinated with asyncio loop
     # For simplicity, we'll exit. FastMCP's run might handle this more gracefully.
+    # frame parameter is required by signal handler signature but not used
     sys.exit(0)
 
 
@@ -350,7 +375,7 @@ async def main():
         finally:
             logger.info("Server shutdown sequence initiated from main.")
             # Explicitly call shutdown hooks if not handled by FastMCP
-            if server_instance.client is not None:
+            if hasattr(server_instance, 'api_client') and server_instance.api_client is not None:
                 await server_instance.shutdown()
             # For now, assuming FastMCP handles it.
     else:
