@@ -14,12 +14,23 @@ from typing import Any, Dict, List, Optional, AsyncGenerator
 import httpx
 from fastmcp import FastMCP
 from api_client import APIClient # Changed from relative for test compatibility
+from utils.pagination import paginate_results, collect_all_results
+from utils.validation import (
+    validate_page_params,
+    validate_sort_params,
+    validate_study_id,
+    validate_keyword,
+    validate_gene_ids_list,
+    validate_gene_id_type,
+    validate_projection,
+)
+from utils.logging import setup_logging, get_logger
 
 # Ensure project root is in sys.path for utility imports if needed
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # from utils.pagination_utils import paginate_results, collect_all_results # Example if utils were used
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class CBioPortalMCPServer:
@@ -82,56 +93,11 @@ class CBioPortalMCPServer:
         json_data: Any = None,
         max_pages: int = None,
     ) -> AsyncGenerator[List[Dict[str, Any]], None]:
-        """
-        Asynchronous generator that yields pages of results from paginated API endpoints.
-
-        Args:
-            endpoint: API endpoint path
-            params: Query parameters to include in the request
-            method: HTTP method (GET or POST)
-            json_data: JSON data for POST requests
-            max_pages: Maximum number of pages to retrieve (None for all available)
-
-        Yields:
-            Lists of results, one page at a time
-        """
-        if params is None:
-            params = {}
-
-        # Ensure we have pagination parameters
-        page = params.get("pageNumber", 0)
-        page_size = params.get("pageSize", 50)
-
-        # Set pagination parameters in the request
-        request_params = params.copy()
-
-        page_count = 0
-        has_more = True
-
-        while has_more and (max_pages is None or page_count < max_pages):
-            # Update page number for current request
-            request_params["pageNumber"] = page
-
-            # Make the API request
-            results = await self.api_client.make_api_request( # Changed
-                endpoint,
-                method=method,
-                params=request_params.copy(),
-                json_data=json_data,
-            )
-
-            # Check if we got any results
-            if not results or len(results) == 0:
-                break
-
-            yield results
-
-            # Check if we have more pages
-            has_more = len(results) == page_size
-
-            # Increment counters
-            page += 1
-            page_count += 1
+        """Delegate to utils.pagination.paginate_results with api_client."""
+        async for page in paginate_results(
+            self.api_client, endpoint, params, method, json_data, max_pages
+        ):
+            yield page
 
     async def collect_all_results(
         self,
@@ -142,33 +108,10 @@ class CBioPortalMCPServer:
         max_pages: int = None,
         limit: int = None,
     ) -> List[Dict[str, Any]]:
-        """
-        Collect all results from a paginated endpoint into a single list.
-
-        Args:
-            endpoint: API endpoint path
-            params: Query parameters to include in the request
-            method: HTTP method (GET or POST)
-            json_data: JSON data for POST requests
-            max_pages: Maximum number of pages to retrieve
-            limit: Maximum number of total results to return
-
-        Returns:
-            List of all collected results (limited by max_pages and/or limit)
-        """
-        all_results = []
-
-        async for page in self.paginate_results(
-            endpoint, params, method, json_data, max_pages
-        ):
-            all_results.extend(page)
-
-            # Stop if we've reached the specified limit
-            if limit and len(all_results) >= limit:
-                all_results = all_results[:limit]
-                break
-
-        return all_results
+        """Delegate to utils.pagination.collect_all_results with api_client."""
+        return await collect_all_results(
+            self.api_client, endpoint, params, method, json_data, max_pages, limit
+        )
 
     # _make_api_request method was removed.
     # Its functionality is now handled by the APIClient class in api_client.py.
@@ -198,23 +141,8 @@ class CBioPortalMCPServer:
             Dictionary containing list of studies and metadata
         """
         # Input Validation
-        if not isinstance(page_number, int):
-            raise TypeError("page_number must be an integer")
-        if page_number < 0:
-            raise ValueError("page_number must be non-negative")
-        if not isinstance(page_size, int):
-            raise TypeError("page_size must be an integer")
-        if page_size <= 0:
-            raise ValueError("page_size must be positive")
-        if sort_by is not None and not isinstance(sort_by, str):
-            raise TypeError("sort_by must be a string if provided")
-        if not isinstance(direction, str) or direction.upper() not in ["ASC", "DESC"]:
-            raise ValueError("direction must be 'ASC' or 'DESC'")
-        if limit is not None:
-            if not isinstance(limit, int):
-                raise TypeError("limit must be an integer if provided")
-            if limit < 0:
-                raise ValueError("limit must be non-negative if provided")
+        validate_page_params(page_number, page_size, limit)
+        validate_sort_params(sort_by, direction)
 
         try:
             # Configure API parameters
@@ -285,23 +213,8 @@ class CBioPortalMCPServer:
             Dictionary containing list of cancer types and metadata
         """
         # Input Validation
-        if not isinstance(page_number, int):
-            raise TypeError("page_number must be an integer")
-        if page_number < 0:
-            raise ValueError("page_number must be non-negative")
-        if not isinstance(page_size, int):
-            raise TypeError("page_size must be an integer")
-        if page_size <= 0:
-            raise ValueError("page_size must be positive")
-        if sort_by is not None and not isinstance(sort_by, str):
-            raise TypeError("sort_by must be a string if provided")
-        if not isinstance(direction, str) or direction.upper() not in ["ASC", "DESC"]:
-            raise ValueError("direction must be 'ASC' or 'DESC'")
-        if limit is not None:
-            if not isinstance(limit, int):
-                raise TypeError("limit must be an integer if provided")
-            if limit < 0:
-                raise ValueError("limit must be non-negative if provided")
+        validate_page_params(page_number, page_size, limit)
+        validate_sort_params(sort_by, direction)
 
         try:
             # Configure API parameters
@@ -363,27 +276,9 @@ class CBioPortalMCPServer:
         Get a list of samples associated with a specific cancer study with pagination support.
         """
         # Input Validation
-        if not isinstance(study_id, str):
-            raise TypeError("study_id must be a string")
-        if not study_id:
-            raise ValueError("study_id cannot be empty")
-        if not isinstance(page_number, int):
-            raise TypeError("page_number must be an integer")
-        if page_number < 0:
-            raise ValueError("page_number must be non-negative")
-        if not isinstance(page_size, int):
-            raise TypeError("page_size must be an integer")
-        if page_size <= 0:
-            raise ValueError("page_size must be positive")
-        if sort_by is not None and not isinstance(sort_by, str):
-            raise TypeError("sort_by must be a string if provided")
-        if not isinstance(direction, str) or direction.upper() not in ["ASC", "DESC"]:
-            raise ValueError("direction must be 'ASC' or 'DESC'")
-        if limit is not None:
-            if not isinstance(limit, int):
-                raise TypeError("limit must be an integer if provided")
-            if limit < 0:
-                raise ValueError("limit must be non-negative if provided")
+        validate_study_id(study_id)
+        validate_page_params(page_number, page_size, limit)
+        validate_sort_params(sort_by, direction)
 
         try:
             api_call_params = {
@@ -438,27 +333,9 @@ class CBioPortalMCPServer:
         Search for genes by keyword in their symbol or name with pagination support.
         """
         # Input Validation
-        if not isinstance(keyword, str):
-            raise TypeError("keyword must be a string")
-        if not keyword:
-            raise ValueError("keyword cannot be empty")
-        if not isinstance(page_number, int):
-            raise TypeError("page_number must be an integer")
-        if page_number < 0:
-            raise ValueError("page_number must be non-negative")
-        if not isinstance(page_size, int):
-            raise TypeError("page_size must be an integer")
-        if page_size <= 0:
-            raise ValueError("page_size must be positive")
-        if sort_by is not None and not isinstance(sort_by, str):
-            raise TypeError("sort_by must be a string if provided")
-        if not isinstance(direction, str) or direction.upper() not in ["ASC", "DESC"]:
-            raise ValueError("direction must be 'ASC' or 'DESC'")
-        if limit is not None:
-            if not isinstance(limit, int):
-                raise TypeError("limit must be an integer if provided")
-            if limit < 0:
-                raise ValueError("limit must be non-negative if provided")
+        validate_keyword(keyword)
+        validate_page_params(page_number, page_size, limit)
+        validate_sort_params(sort_by, direction)
 
         try:
             api_call_params = {
@@ -530,27 +407,9 @@ class CBioPortalMCPServer:
             Dictionary containing list of studies and metadata
         """
         # Input Validation
-        if not isinstance(keyword, str):
-            raise TypeError("keyword must be a string")
-        if not keyword:
-            raise ValueError("keyword cannot be empty")
-        if not isinstance(page_number, int):
-            raise TypeError("page_number must be an integer")
-        if page_number < 0:
-            raise ValueError("page_number must be non-negative")
-        if not isinstance(page_size, int):
-            raise TypeError("page_size must be an integer")
-        if page_size <= 0:
-            raise ValueError("page_size must be positive")
-        if sort_by is not None and not isinstance(sort_by, str):
-            raise TypeError("sort_by must be a string if provided")
-        if not isinstance(direction, str) or direction.upper() not in ["ASC", "DESC"]:
-            raise ValueError("direction must be 'ASC' or 'DESC'")
-        if limit is not None:
-            if not isinstance(limit, int):
-                raise TypeError("limit must be an integer if provided")
-            if limit < 0:
-                raise ValueError("limit must be non-negative if provided")
+        validate_keyword(keyword)
+        validate_page_params(page_number, page_size, limit)
+        validate_sort_params(sort_by, direction)
 
         try:
             # Consider if fetching ALL studies upfront is efficient for large datasets.
@@ -656,27 +515,9 @@ class CBioPortalMCPServer:
         Get a list of molecular profiles available for a specific cancer study with pagination support.
         """
         # Input Validation
-        if not isinstance(study_id, str):
-            raise TypeError("study_id must be a string")
-        if not study_id:
-            raise ValueError("study_id cannot be empty")
-        if not isinstance(page_number, int):
-            raise TypeError("page_number must be an integer")
-        if page_number < 0:
-            raise ValueError("page_number must be non-negative")
-        if not isinstance(page_size, int):
-            raise TypeError("page_size must be an integer")
-        if page_size <= 0:
-            raise ValueError("page_size must be positive")
-        if sort_by is not None and not isinstance(sort_by, str):
-            raise TypeError("sort_by must be a string if provided")
-        if not isinstance(direction, str) or direction.upper() not in ["ASC", "DESC"]:
-            raise ValueError("direction must be 'ASC' or 'DESC'")
-        if limit is not None:
-            if not isinstance(limit, int):
-                raise TypeError("limit must be an integer if provided")
-            if limit < 0:
-                raise ValueError("limit must be non-negative if provided")
+        validate_study_id(study_id)
+        validate_page_params(page_number, page_size, limit)
+        validate_sort_params(sort_by, direction)
 
         try:
             if limit == 0:
@@ -1221,10 +1062,7 @@ class CBioPortalMCPServer:
             Dictionary containing study details
         """
         # Input Validation
-        if not isinstance(study_id, str):
-            raise TypeError("study_id must be a string")
-        if not study_id:
-            raise ValueError("study_id cannot be empty")
+        validate_study_id(study_id)
 
         endpoint = f"studies/{study_id}"
         try:
@@ -1305,14 +1143,10 @@ async def main():
 
     args = parser.parse_args()
 
-    # Configure logging
-    logging.basicConfig(
-        level=args.log_level.upper(),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler(sys.stderr)],  # Ensure logs go to stderr
-    )
-    global logger  # Use global logger after basicConfig is set
-    logger = logging.getLogger(__name__)  # Re-assign to get logger with new config
+    # Configure logging using utils
+    setup_logging(level=args.log_level)
+    global logger  # Use global logger after setup
+    logger = get_logger(__name__)  # Re-assign to get logger with new config
 
     setup_signal_handlers()  # Setup signal handlers for graceful shutdown
 
