@@ -8,7 +8,9 @@
       "Bash(rm:*)",
       "mcp__graphiti__add_memory",
       "Bash(git add:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
