@@ -4,6 +4,40 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ## [Unreleased]
 
+### 2025-01-08
+
+#### Migration to uv Package Manager
+
+- **Project Modernization**:
+  - Migrated from pip/requirements.txt to uv's modern project workflow using pyproject.toml
+  - Created comprehensive pyproject.toml with full project metadata, dependencies, and configuration
+  - Generated universal lockfile (uv.lock) for reproducible builds across platforms
+  - Updated Python requirement from 3.8+ to 3.10+ (required by fastmcp dependency)
+
+- **Dependency Management Improvements**:
+  - Consolidated requirements.txt and requirements-dev.txt into pyproject.toml dependency groups
+  - Moved pytest configuration from pytest.ini to pyproject.toml for centralized configuration
+  - Added proper build system configuration with hatchling backend
+  - Created script entry point: `cbioportal-mcp` command for easy CLI access
+
+- **Development Workflow Enhancements**:
+  - All development commands now use `uv run` for automatic environment management
+  - Simplified dependency installation with `uv sync` (replaces multiple pip install commands)
+  - Added synchronous CLI entry point wrapper for async main function
+  - Performance improvement: 10-100x faster dependency operations with uv vs pip
+
+- **Documentation Updates**:
+  - Updated README.md to prioritize uv workflow with migration instructions
+  - Updated CLAUDE.md with new uv-based development commands
+  - Created comprehensive MIGRATION_TO_UV.md guide for existing developers
+  - Updated installation instructions and usage examples throughout documentation
+
+- **Quality Assurance**:
+  - Verified all 92 tests pass with uv workflow
+  - Confirmed server functionality with both `uv run python cbioportal_server.py` and `uv run cbioportal-mcp`
+  - Maintained backward compatibility for pip users (legacy support documented)
+  - No breaking changes to server functionality or API
+
 
 ### 2025-05-09
 

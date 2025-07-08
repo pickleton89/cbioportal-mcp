@@ -1345,7 +1345,12 @@ async def main():
     logger.info("cBioPortal MCP Server has shut down.")
 
 
-if __name__ == "__main__":
+def cli_main():
+    """Synchronous entry point for CLI script."""
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    cli_main()
 
 # End of file
