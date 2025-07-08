@@ -6,6 +6,32 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ### 2025-07-08
 
+#### Project Structure Cleanup and Organization
+
+- **Repository Structure Reorganization**:
+  - **Created `docs/` directory**: Moved documentation files (IMPLEMENTATION_PLAN.md, MIGRATION_TO_UV.md, REFACTOR_PLAN.md) for better organization
+  - **Created `scripts/` directory**: Moved development utilities (quick_test.py, test_async.py) with updated import paths
+  - **Removed redundant files**: Eliminated requirements.txt and requirements-dev.txt (now handled by pyproject.toml)
+  - **Professional structure**: Repository now follows Python best practices with logical file grouping
+
+- **Git Configuration Improvements**:
+  - **Updated .gitignore**: Added Claude Code personal files section to ignore CLAUDE.local.md and .claude/ directory
+  - **Removed personal files from tracking**: CLAUDE.local.md and .claude/settings.local.json no longer tracked
+  - **Preserved shared documentation**: CLAUDE.md remains tracked for team collaboration
+  - **Enhanced privacy**: Personal workflow notes and settings now properly excluded from version control
+
+- **Test Suite Modernization and Fixes**:
+  - **Fixed CLI test failures**: Updated all 5 CLI tests to work with new Configuration-based API
+  - **API compatibility updates**: Tests now properly mock load_config and Configuration objects
+  - **Assertion corrections**: Updated test expectations to match current server constructor (config= parameter)
+  - **Logging mock updates**: Changed from logging.basicConfig to setup_logging mocks
+  - **Complete test coverage**: All 92 tests now passing with zero regressions
+
+- **Script Maintenance**:
+  - **Updated import paths**: Fixed quick_test.py and test_async.py to work from scripts/ directory
+  - **Path resolution**: Added proper sys.path manipulation for relocated development utilities
+  - **Functionality preserved**: All development scripts maintain full compatibility
+
 #### Code Quality and Maintenance Improvements
 
 - **Comprehensive Code Cleanup**:

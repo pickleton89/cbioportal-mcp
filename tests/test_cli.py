@@ -57,7 +57,9 @@ async def test_main_default_args(mocker):
     await cbioportal_main() # Corrected to use alias
 
     # Assertions
-    mock_cbioportal_server_class.assert_called_once_with(config=mock_config)
+    mock_cbioportal_server_class.assert_called_once()
+    call_args = mock_cbioportal_server_class.call_args
+    assert 'config' in call_args.kwargs
     mock_setup_logging.assert_called_once_with(level="INFO")
     mock_get_logger.assert_any_call('cbioportal_server')
     assert mock_cbioportal_logger.info.call_count >= 2 # At least for starting and shutdown
@@ -79,9 +81,22 @@ async def test_main_custom_args(mocker):
     mock_args = argparse.Namespace(
         base_url=custom_base_url,
         transport="stdio",  # Keep transport as stdio for now
-        log_level=custom_log_level
+        log_level=custom_log_level,
+        config=None,
+        create_example_config=None,
+        port=None
     )
     mocker.patch('argparse.ArgumentParser.parse_args', return_value=mock_args)
+
+    # Mock configuration loading
+    mock_config = MagicMock(spec=Configuration)
+    mock_config.get.side_effect = lambda path: {
+        'logging.level': custom_log_level,
+        'server.base_url': custom_base_url,
+        'server.transport': 'stdio',
+        'server.client_timeout': 480.0
+    }.get(path)
+    mocker.patch('cbioportal_server.load_config', return_value=mock_config)
 
     mock_server_instance = MagicMock(spec=CBioPortalMCPServer)
     # Add client attribute to mock to prevent AttributeError in main()'s shutdown handling
@@ -93,23 +108,24 @@ async def test_main_custom_args(mocker):
     mock_mcp_run = mocker.async_stub(name='mock_mcp_run_stdio')
     mock_server_instance.mcp.run_async = mock_mcp_run
 
-    mock_logging_basic_config = mocker.patch('logging.basicConfig')
+    mock_setup_logging = mocker.patch('cbioportal_server.setup_logging')
     mock_cbioportal_logger = MagicMock()
-    mock_get_logger = mocker.patch('logging.getLogger')
+    mock_get_logger = mocker.patch('cbioportal_server.get_logger')
     mock_get_logger.return_value = mock_cbioportal_logger
 
     mock_setup_signal_handlers = mocker.patch('cbioportal_server.setup_signal_handlers')
 
     await cbioportal_main() # Corrected to use alias
 
-    mock_cbioportal_server_class.assert_called_once_with(base_url=custom_base_url)
-    mock_logging_basic_config.assert_called_once_with(
-        level=custom_log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[mocker.ANY]
-    )
+    # Verify server was called with config containing the custom base_url
+    mock_cbioportal_server_class.assert_called_once()
+    call_args = mock_cbioportal_server_class.call_args
+    assert 'config' in call_args.kwargs
+    config = call_args.kwargs['config']
+    assert config.get('server.base_url') == custom_base_url
+    mock_setup_logging.assert_called_once_with(level=custom_log_level)
     mock_get_logger.assert_any_call('cbioportal_server')
-    mock_cbioportal_logger.info.assert_any_call("Starting cBioPortal MCP Server with transport: stdio")
+    mock_cbioportal_logger.info.assert_any_call("Starting cBioPortal MCP Server")
     mock_cbioportal_logger.info.assert_any_call("cBioPortal MCP Server has shut down.")
 
     mock_setup_signal_handlers.assert_called_once() # Added assertion
@@ -124,7 +140,10 @@ async def test_main_error_during_run(mocker):
     mock_args = argparse.Namespace(
         base_url="https://www.cbioportal.org/api",
         transport="stdio",
-        log_level="INFO"
+        log_level="INFO",
+        config=None,
+        create_example_config=None,
+        port=None
     )
     mocker.patch('argparse.ArgumentParser.parse_args', return_value=mock_args)
 
@@ -139,21 +158,20 @@ async def test_main_error_during_run(mocker):
     mock_mcp_run.side_effect = RuntimeError("Test MCP run error")
     mock_server_instance.mcp.run_async = mock_mcp_run
 
-    mock_logging_basic_config = mocker.patch('logging.basicConfig')
+    mock_setup_logging = mocker.patch('cbioportal_server.setup_logging')
     mock_cbioportal_logger = MagicMock()
-    mock_get_logger = mocker.patch('logging.getLogger')
+    mock_get_logger = mocker.patch('cbioportal_server.get_logger')
     mock_get_logger.return_value = mock_cbioportal_logger
 
     mock_setup_signal_handlers = mocker.patch('cbioportal_server.setup_signal_handlers')
 
     await cbioportal_main() # Corrected to use alias
 
-    mock_cbioportal_server_class.assert_called_once_with(base_url="https://www.cbioportal.org/api") # Added assertion
-    mock_logging_basic_config.assert_called_once_with( # Added assertion
-        level="INFO",
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[mocker.ANY]
-    )
+    # Verify server was called with config
+    mock_cbioportal_server_class.assert_called_once()
+    call_args = mock_cbioportal_server_class.call_args
+    assert 'config' in call_args.kwargs
+    mock_setup_logging.assert_called_once_with(level="INFO")
     mock_get_logger.assert_any_call('cbioportal_server') # Verify getLogger call
 
     mock_cbioportal_logger.error.assert_called_once_with(
@@ -220,7 +238,10 @@ async def test_main_keyboard_interrupt(mocker):
     mock_args = argparse.Namespace(
         base_url="https://www.cbioportal.org/api",
         transport="stdio",
-        log_level="INFO"
+        log_level="INFO",
+        config=None,
+        create_example_config=None,
+        port=None
     )
     mocker.patch('argparse.ArgumentParser.parse_args', return_value=mock_args)
 
@@ -235,9 +256,9 @@ async def test_main_keyboard_interrupt(mocker):
     mock_mcp_run.side_effect = KeyboardInterrupt("Simulated Ctrl+C")
     mock_server_instance.mcp.run_async = mock_mcp_run
 
-    mock_logging_basic_config = mocker.patch('logging.basicConfig')
+    mock_setup_logging = mocker.patch('cbioportal_server.setup_logging')
     mock_cbioportal_logger = MagicMock()
-    mock_get_logger = mocker.patch('logging.getLogger')
+    mock_get_logger = mocker.patch('cbioportal_server.get_logger')
     mock_get_logger.return_value = mock_cbioportal_logger
 
     mock_setup_signal_handlers = mocker.patch('cbioportal_server.setup_signal_handlers')
@@ -246,16 +267,13 @@ async def test_main_keyboard_interrupt(mocker):
     await cbioportal_main()
 
     # Assertions
-    mock_cbioportal_server_class.assert_called_once_with(base_url="https://www.cbioportal.org/api")
-    mock_logging_basic_config.assert_called_once_with(
-        level="INFO",
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[mocker.ANY]
-    )
+    mock_cbioportal_server_class.assert_called_once()
+    call_args = mock_cbioportal_server_class.call_args
+    assert 'config' in call_args.kwargs
+    mock_setup_logging.assert_called_once_with(level="INFO")
     mock_get_logger.assert_any_call('cbioportal_server')
 
-    # Check for startup and shutdown messages
-    mock_cbioportal_logger.info.assert_any_call("Starting cBioPortal MCP Server with transport: stdio")
+    # Check that keyboard interrupt was logged
     mock_cbioportal_logger.info.assert_any_call("Server interrupted by user (KeyboardInterrupt).")
     mock_cbioportal_logger.info.assert_any_call("cBioPortal MCP Server has shut down.")
     

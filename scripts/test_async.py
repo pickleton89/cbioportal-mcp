@@ -6,6 +6,10 @@ This script demonstrates the performance benefits of async operations.
 
 import asyncio
 import time
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from cbioportal_server import CBioPortalMCPServer
 
 async def test_sequential_vs_concurrent():
