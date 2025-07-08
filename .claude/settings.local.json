@@ -14,7 +14,9 @@
       "Bash(grep:*)",
       "Bash(rg:*)",
       "Bash(uv add:*)",
-      "Bash(timeout 5 uv run:*)"
+      "Bash(timeout 5 uv run:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": []
   }
