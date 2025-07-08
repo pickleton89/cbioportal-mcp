@@ -16,7 +16,8 @@
       "Bash(uv add:*)",
       "Bash(timeout 5 uv run:*)",
       "Bash(git push:*)",
-      "Bash(gh pr create:*)"
+      "Bash(gh pr create:*)",
+      "Bash(git stash:*)"
     ],
     "deny": []
   }
