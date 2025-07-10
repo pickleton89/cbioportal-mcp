@@ -8,7 +8,7 @@ Contains all molecular profile and clinical data related endpoint methods:
 - get_gene_panel_details: Get detailed gene panel information
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import httpx
 from ..api_client import APIClient
@@ -32,14 +32,14 @@ class MolecularProfilesEndpoints:
     async def collect_all_results(
         self,
         endpoint: str,
-        params: Dict[str, Any] = None,
+        params: Optional[Dict[str, Any]] = None,
         method: str = "GET",
         json_data: Any = None,
         limit: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """Collect all results from a paginated endpoint."""
         # This is a temporary method - should be moved to utils in future
-        from utils.pagination import collect_all_results
+        from ..utils.pagination import collect_all_results
         return await collect_all_results(
             self.api_client, endpoint, params, method, json_data, limit
         )
@@ -195,7 +195,7 @@ class MolecularProfilesEndpoints:
         sort_by: Optional[str] = "genePanelId",
         direction: str = "ASC",
         limit: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
         """
         Get all gene panels in a specific study with pagination support.
 

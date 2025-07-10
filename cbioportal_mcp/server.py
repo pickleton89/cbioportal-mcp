@@ -112,10 +112,10 @@ class CBioPortalMCPServer:
     async def paginate_results(
         self,
         endpoint: str,
-        params: Dict[str, Any] = None,
+        params: Optional[Dict[str, Any]] = None,
         method: str = "GET",
         json_data: Any = None,
-        max_pages: int = None,
+        max_pages: Optional[int] = None,
     ) -> AsyncGenerator[List[Dict[str, Any]], None]:
         """Delegate to utils.pagination.paginate_results with api_client."""
         async for page in paginate_results(
@@ -126,11 +126,11 @@ class CBioPortalMCPServer:
     async def collect_all_results(
         self,
         endpoint: str,
-        params: Dict[str, Any] = None,
+        params: Optional[Dict[str, Any]] = None,
         method: str = "GET",
         json_data: Any = None,
-        max_pages: int = None,
-        limit: int = None,
+        max_pages: Optional[int] = None,
+        limit: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """Delegate to utils.pagination.collect_all_results with api_client."""
         return await collect_all_results(

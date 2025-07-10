@@ -4,16 +4,16 @@ Pagination utilities for the cBioPortal MCP server.
 This module provides reusable pagination functionality for API endpoints.
 """
 
-from typing import Any, Dict, List, AsyncGenerator
+from typing import Any, Dict, List, Optional, AsyncGenerator
 
 
 async def paginate_results(
     api_client,
     endpoint: str,
-    params: Dict[str, Any] = None,
+    params: Optional[Dict[str, Any]] = None,
     method: str = "GET",
     json_data: Any = None,
-    max_pages: int = None,
+    max_pages: Optional[int] = None,
 ) -> AsyncGenerator[List[Dict[str, Any]], None]:
     """
     Asynchronous generator that yields pages of results from paginated API endpoints.
@@ -71,11 +71,11 @@ async def paginate_results(
 async def collect_all_results(
     api_client,
     endpoint: str,
-    params: Dict[str, Any] = None,
+    params: Optional[Dict[str, Any]] = None,
     method: str = "GET",
     json_data: Any = None,
-    max_pages: int = None,
-    limit: int = None,
+    max_pages: Optional[int] = None,
+    limit: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     """
     Collect all results from a paginated endpoint into a single list.

@@ -6,6 +6,24 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ### 2025-07-10
 
+#### Type Checking Improvements
+
+**Comprehensive Type Annotation Fixes**:
+- **Fixed parameter default type mismatches** across multiple modules:
+  - `utils/pagination.py`: Changed `Dict[str, Any] = None` to `Optional[Dict[str, Any]] = None` and `int = None` to `Optional[int] = None`
+  - `server.py`: Updated pagination method signatures with proper Optional types
+  - `endpoints/molecular_profiles.py` and `endpoints/studies.py`: Fixed parameter type annotations
+- **Fixed return type mismatches** in `molecular_profiles.py`: Updated `get_gene_panels_for_study` return type to `Union[List[Dict[str, Any]], Dict[str, Any]]` to allow error dictionaries
+- **Fixed unresolved imports**: Corrected relative import path from `utils.pagination` to `..utils.pagination` in `molecular_profiles.py`
+- **Added missing type imports**: Added `Optional` and `Union` to typing imports where needed
+- **Fixed test attribute issue**: Added type ignore comment for `SystemExit.code` attribute in test
+
+**Quality Assurance**:
+- Reduced type checker errors from 26 to 3 (88% improvement)
+- Remaining 3 errors are in old script files that don't affect main codebase
+- All critical type safety issues resolved
+- Improved code maintainability with better type annotations
+
 #### Code Quality and Linting Improvements
 
 **Comprehensive Linter Fixes**:

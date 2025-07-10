@@ -34,7 +34,7 @@ class StudiesEndpoints:
     async def collect_all_results(
         self,
         endpoint: str,
-        params: Dict[str, Any] = None,
+        params: Optional[Dict[str, Any]] = None,
         method: str = "GET",
         json_data: Any = None,
     ) -> List[Dict[str, Any]]:

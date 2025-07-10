@@ -225,7 +225,7 @@ async def test_main_unsupported_transport(mocker):
     with pytest.raises(SystemExit) as excinfo:
         await cbioportal_main()
     
-    assert excinfo.value.code == 2
+    assert excinfo.value.code == 2  # type: ignore[attr-defined]
     mock_argparse_error.assert_called_once_with(
         "argument --transport: invalid choice: 'invalid_transport' (choose from 'stdio')"
     )
