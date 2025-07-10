@@ -22,6 +22,23 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 - Added new test for falsy values edge cases
 - Maintained full backward compatibility
 
+#### Medium Priority Code Quality Fixes (Phase 2)
+
+**Async Best Practices**:
+- **Fixed deprecated event loop usage** (endpoints/studies.py): Replaced asyncio.get_event_loop().time() with time.perf_counter() for performance timing
+- **Improved signal handling** (cbioportal_server.py:314): Replaced sys.exit(0) with graceful KeyboardInterrupt-based shutdown for proper async cleanup
+
+**Exception Handling Enhancements**:
+- **Created specific exception classes** (api_client.py): Replaced generic Exception wrapping with typed hierarchy:
+  - APIClientError (base), APIHTTPError (with status codes), APINetworkError, APITimeoutError, APIParseError
+- **Enhanced error diagnostics**: Each exception type includes relevant context (status codes, endpoints, response text)
+- **Improved error handling granularity**: Network timeouts, HTTP errors, and parsing errors now have distinct exception types
+
+**Reliability Improvements**:
+- Better async shutdown sequence preventing resource leaks
+- Enhanced error reporting with specific exception context
+- Future-proof timing code using modern Python async patterns
+
 ### 2025-07-08
 
 #### Documentation Transformation and Project Modernization

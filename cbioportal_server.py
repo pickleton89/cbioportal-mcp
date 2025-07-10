@@ -311,17 +311,26 @@ class CBioPortalMCPServer:
 
 
 
-def handle_signal(signum, frame):
-    logger.info(f"Signal {signum} received, initiating shutdown...")
-    # Note: Actual shutdown logic might need to be coordinated with asyncio loop
-    # For simplicity, we'll exit. FastMCP's run might handle this more gracefully.
-    # frame parameter is required by signal handler signature but not used
-    sys.exit(0)
-
-
 def setup_signal_handlers():
-    signal.signal(signal.SIGINT, handle_signal)  # Handle Ctrl+C
-    signal.signal(signal.SIGTERM, handle_signal)  # Handle termination
+    """
+    Set up signal handlers for graceful shutdown.
+    
+    For async applications, it's better to let the KeyboardInterrupt
+    exception bubble up naturally rather than using signal handlers
+    that call sys.exit(). This allows proper cleanup in the finally block.
+    """
+    # Modern async Python applications typically handle SIGINT via KeyboardInterrupt
+    # and SIGTERM through the event loop, rather than custom signal handlers
+    # that call sys.exit(). This allows proper async cleanup.
+    
+    def handle_sigterm(signum, frame):
+        """Handle SIGTERM by raising KeyboardInterrupt to trigger cleanup."""
+        logger.info(f"SIGTERM received, initiating graceful shutdown...")
+        # Instead of sys.exit(), raise KeyboardInterrupt to let the async cleanup handle it
+        raise KeyboardInterrupt("SIGTERM received")
+    
+    # Only handle SIGTERM since SIGINT is naturally handled as KeyboardInterrupt
+    signal.signal(signal.SIGTERM, handle_sigterm)
 
 
 async def main():
@@ -441,8 +450,10 @@ Examples:
             # Use run_async directly to avoid creating a new event loop
             # This is needed for compatibility with Claude Desktop which already has an event loop
             await server_instance.mcp.run_async(transport="stdio")
-        except KeyboardInterrupt:
-            logger.info("Server interrupted by user (KeyboardInterrupt).")
+        except KeyboardInterrupt as e:
+            # Handle both Ctrl+C and SIGTERM gracefully
+            interrupt_msg = str(e) if str(e) else "user interrupt (Ctrl+C)"
+            logger.info(f"Server interrupted by {interrupt_msg}.")
         except Exception as e:
             logger.error(
                 f"An unexpected error occurred during server execution: {e}",

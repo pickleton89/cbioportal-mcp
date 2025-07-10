@@ -5,6 +5,43 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
+
+class APIClientError(Exception):
+    """Base exception for API client errors."""
+    pass
+
+
+class APIHTTPError(APIClientError):
+    """Raised when an HTTP error occurs during API request."""
+    
+    def __init__(self, message: str, status_code: int, response_text: str = "", endpoint: str = ""):
+        super().__init__(message)
+        self.status_code = status_code
+        self.response_text = response_text
+        self.endpoint = endpoint
+
+
+class APINetworkError(APIClientError):
+    """Raised when a network/request error occurs during API request."""
+    
+    def __init__(self, message: str, endpoint: str = ""):
+        super().__init__(message)
+        self.endpoint = endpoint
+
+
+class APITimeoutError(APINetworkError):
+    """Raised when a timeout occurs during API request."""
+    pass
+
+
+class APIParseError(APIClientError):
+    """Raised when there's an error parsing the API response."""
+    
+    def __init__(self, message: str, endpoint: str = "", response_text: str = ""):
+        super().__init__(message)
+        self.endpoint = endpoint
+        self.response_text = response_text
+
 class APIClient:
     """
     A client for making asynchronous API requests to the cBioPortal API.
@@ -101,10 +138,21 @@ class APIClient:
         except httpx.HTTPStatusError as e:
             error_text_snippet = e.response.text[:500] if e.response.text else "No response body"
             logger.error(f"HTTP error {e.response.status_code} for {method.upper()} {endpoint_path}: {error_text_snippet}...")
-            raise Exception(f"API request to {endpoint} failed with status {e.response.status_code}: {e.response.text}") from e
-        except httpx.RequestError as e: # Catches network errors, timeouts, etc.
+            raise APIHTTPError(
+                f"API request to {endpoint} failed with status {e.response.status_code}: {e.response.text}",
+                status_code=e.response.status_code,
+                response_text=e.response.text,
+                endpoint=endpoint
+            ) from e
+        except httpx.TimeoutException as e:
+            logger.error(f"Timeout error for {method.upper()} {endpoint_path}: {str(e)}")
+            raise APITimeoutError(f"API request to {endpoint} timed out: {str(e)}", endpoint=endpoint) from e
+        except httpx.RequestError as e: # Catches network errors, etc.
             logger.error(f"Request error for {method.upper()} {endpoint_path}: {str(e)}")
-            raise Exception(f"API request to {endpoint} failed due to a network/request error: {str(e)}") from e
-        except Exception as e: # Catch-all for other errors (e.g., JSONDecodeError, unexpected)
+            raise APINetworkError(f"API request to {endpoint} failed due to a network error: {str(e)}", endpoint=endpoint) from e
+        except (ValueError, TypeError) as e: # JSON decode errors, etc.
+            logger.error(f"Parse error during API request to {method.upper()} {endpoint_path}: {str(e)}")
+            raise APIParseError(f"Failed to parse response from {endpoint}: {str(e)}", endpoint=endpoint) from e
+        except Exception as e: # Catch-all for other unexpected errors
             logger.error(f"Unexpected error during API request to {method.upper()} {endpoint_path}: {str(e)}")
-            raise Exception(f"API request to {endpoint} failed: {str(e)}") from e
+            raise APIClientError(f"Unexpected error during API request to {endpoint}: {str(e)}") from e

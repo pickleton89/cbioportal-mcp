@@ -9,6 +9,7 @@ Contains all study-related endpoint methods:
 """
 
 import asyncio
+import time
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -258,10 +259,10 @@ class StudiesEndpoints:
 
         # Create tasks for all study IDs and run them concurrently
         tasks = [fetch_study(study_id) for study_id in study_ids]
-        start_time = asyncio.get_event_loop().time()
+        start_time = time.perf_counter()
         # Use asyncio.gather to execute all tasks concurrently
         results = await asyncio.gather(*tasks)
-        end_time = asyncio.get_event_loop().time()
+        end_time = time.perf_counter()
 
         # Process results into a structured response
         studies_dict = {}
