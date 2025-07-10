@@ -6,24 +6,13 @@ Provides Model Context Protocol tools for accessing the cBioPortal API with full
 
 import argparse
 import asyncio
-import logging
 import signal
 import sys
 from typing import Any, Dict, List, Optional, AsyncGenerator
 
-import httpx
 from fastmcp import FastMCP
 from .api_client import APIClient
 from .utils.pagination import paginate_results, collect_all_results
-from .utils.validation import (
-    validate_page_params,
-    validate_sort_params,
-    validate_study_id,
-    validate_keyword,
-    validate_gene_ids_list,
-    validate_gene_id_type,
-    validate_projection,
-)
 from .utils.logging import setup_logging, get_logger
 from .endpoints import StudiesEndpoints, GenesEndpoints, SamplesEndpoints, MolecularProfilesEndpoints
 from .config import load_config, create_example_config, Configuration
@@ -325,7 +314,7 @@ def setup_signal_handlers():
     
     def handle_sigterm(signum, frame):
         """Handle SIGTERM by raising KeyboardInterrupt to trigger cleanup."""
-        logger.info(f"SIGTERM received, initiating graceful shutdown...")
+        logger.info("SIGTERM received, initiating graceful shutdown...")
         # Instead of sys.exit(), raise KeyboardInterrupt to let the async cleanup handle it
         raise KeyboardInterrupt("SIGTERM received")
     
@@ -433,7 +422,7 @@ Examples:
     setup_signal_handlers()  # Setup signal handlers for graceful shutdown
 
     # Log configuration info
-    logger.info(f"Starting cBioPortal MCP Server")
+    logger.info("Starting cBioPortal MCP Server")
     logger.info(f"Base URL: {config.get('server.base_url')}")
     logger.info(f"Transport: {config.get('server.transport')}")
     logger.info(f"Client timeout: {config.get('server.client_timeout')}s")

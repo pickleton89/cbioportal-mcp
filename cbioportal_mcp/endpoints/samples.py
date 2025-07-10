@@ -6,7 +6,7 @@ Contains all sample-related endpoint methods:
 - get_sample_list_id: Get sample list information
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
 from ..api_client import APIClient
 from ..constants import FETCH_ALL_PAGE_SIZE

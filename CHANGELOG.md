@@ -6,6 +6,24 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ### 2025-07-10
 
+#### Code Quality and Linting Improvements
+
+**Comprehensive Linter Fixes**:
+- **Critical bug fix** (api_client.py:130): Fixed undefined `url` variable in debug logging by using `response.url`
+- **Removed unused imports** across multiple files:
+  - server.py: Removed unused `logging`, `httpx`, and validation function imports
+  - endpoints/genes.py: Cleaned up unused `Any` and validation imports (kept `List` as needed)
+  - endpoints/samples.py: Removed unused `Any` and `List` imports
+  - utils/pagination.py: Removed unused `Optional` import
+  - Test files: Removed unused `CBioPortalMCPServer` imports
+- **Style improvements**: Fixed unnecessary f-string prefixes in server.py log statements
+
+**Quality Assurance**:
+- All 93 tests continue to pass after linter fixes
+- Ruff linter reports "All checks passed!" 
+- Zero functional impact - all changes were safe cleanup or critical bug fixes
+- Maintained full backward compatibility
+
 #### High Priority Code Quality Fixes (Phase 1)
 
 **Configuration System Improvements**:

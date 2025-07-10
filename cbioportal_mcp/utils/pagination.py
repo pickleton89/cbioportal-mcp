@@ -4,7 +4,7 @@ Pagination utilities for the cBioPortal MCP server.
 This module provides reusable pagination functionality for API endpoints.
 """
 
-from typing import Any, Dict, List, Optional, AsyncGenerator
+from typing import Any, Dict, List, AsyncGenerator
 
 
 async def paginate_results(

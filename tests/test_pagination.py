@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import patch, call
 
-from cbioportal_mcp.server import CBioPortalMCPServer
 
 
 @pytest.fixture

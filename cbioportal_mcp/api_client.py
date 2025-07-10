@@ -127,7 +127,7 @@ class APIClient:
             response.raise_for_status()  # Raises HTTPStatusError for 4xx/5xx responses
 
             if not response.text: # Handle empty response body
-                logger.debug(f"Empty response body from {url} (status: {response.status_code}). Endpoint: {endpoint}")
+                logger.debug(f"Empty response body from {response.url} (status: {response.status_code}). Endpoint: {endpoint}")
                 # Original logic: if endpoint implies a list (plural 's' or 'fetch'), return empty list.
                 if endpoint.endswith("s") or endpoint.endswith("fetch"):
                     return []
