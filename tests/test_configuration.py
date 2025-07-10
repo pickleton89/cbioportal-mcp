@@ -21,3 +21,27 @@ async def test_api_url_configuration():
     config_custom._config['server']['base_url'] = custom_url
     server_custom = CBioPortalMCPServer(config=config_custom)
     assert server_custom.base_url == custom_url
+
+
+def test_configuration_falsy_values():
+    """Test that Configuration.get() correctly handles falsy values like 0, False, empty strings."""
+    config = Configuration()
+    
+    # Test with 0 (should return 0, not default)
+    config._config['test'] = {'port': 0}
+    assert config.get('test.port', 8080) == 0
+    
+    # Test with False (should return False, not default)
+    config._config['test']['enabled'] = False
+    assert config.get('test.enabled', True) is False
+    
+    # Test with empty string (should return empty string, not default)
+    config._config['test']['name'] = ""
+    assert config.get('test.name', 'default') == ""
+    
+    # Test with None (should return default)
+    config._config['test']['value'] = None
+    assert config.get('test.value', 'default') == 'default'
+    
+    # Test with missing key (should return default)
+    assert config.get('test.missing', 'default') == 'default'

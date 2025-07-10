@@ -263,7 +263,8 @@ class Configuration:
         Returns:
             Configuration value or default
         """
-        return self._get_nested_value(path) or default
+        value = self._get_nested_value(path)
+        return value if value is not None else default
     
     def _get_nested_value(self, path: str) -> Any:
         """Get nested value from configuration using dot notation."""

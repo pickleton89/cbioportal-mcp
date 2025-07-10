@@ -30,7 +30,7 @@ class APIClient:
         Should be called before making any API requests.
         """
         if self._client is None:
-            self._client = httpx.AsyncClient(timeout=self.client_timeout)
+            self._client = httpx.AsyncClient(base_url=self.base_url, timeout=self.client_timeout)
             logger.info(f"APIClient's httpx.AsyncClient started with base_url: {self.base_url} and timeout: {self.client_timeout}s")
         else:
             logger.info("APIClient's httpx.AsyncClient was already started.")
@@ -74,16 +74,17 @@ class APIClient:
         if self._client is None:
             raise RuntimeError("APIClient._client is not initialized. Call APIClient.startup() before making requests.")
 
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
-        logger.debug(f"Making {method.upper()} request to {url} with params: {params}, json_data: {json_data is not None}")
+        # Use relative path since base_url is configured in the client
+        endpoint_path = endpoint.lstrip('/')
+        logger.debug(f"Making {method.upper()} request to {endpoint_path} with params: {params}, json_data: {json_data is not None}")
 
         try:
             if method.upper() == "GET":
-                response = await self._client.get(url, params=params)
+                response = await self._client.get(endpoint_path, params=params)
             elif method.upper() == "POST":
-                response = await self._client.post(url, json=json_data, params=params)
+                response = await self._client.post(endpoint_path, json=json_data, params=params)
             else:
-                logger.error(f"Unsupported HTTP method: {method} for URL: {url}")
+                logger.error(f"Unsupported HTTP method: {method} for endpoint: {endpoint_path}")
                 raise ValueError(f"Unsupported HTTP method: {method}")
 
             response.raise_for_status()  # Raises HTTPStatusError for 4xx/5xx responses
@@ -99,11 +100,11 @@ class APIClient:
 
         except httpx.HTTPStatusError as e:
             error_text_snippet = e.response.text[:500] if e.response.text else "No response body"
-            logger.error(f"HTTP error {e.response.status_code} for {method.upper()} {url}: {error_text_snippet}...")
+            logger.error(f"HTTP error {e.response.status_code} for {method.upper()} {endpoint_path}: {error_text_snippet}...")
             raise Exception(f"API request to {endpoint} failed with status {e.response.status_code}: {e.response.text}") from e
         except httpx.RequestError as e: # Catches network errors, timeouts, etc.
-            logger.error(f"Request error for {method.upper()} {url}: {str(e)}")
+            logger.error(f"Request error for {method.upper()} {endpoint_path}: {str(e)}")
             raise Exception(f"API request to {endpoint} failed due to a network/request error: {str(e)}") from e
         except Exception as e: # Catch-all for other errors (e.g., JSONDecodeError, unexpected)
-            logger.error(f"Unexpected error during API request to {method.upper()} {url}: {str(e)}")
+            logger.error(f"Unexpected error during API request to {method.upper()} {endpoint_path}: {str(e)}")
             raise Exception(f"API request to {endpoint} failed: {str(e)}") from e

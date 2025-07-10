@@ -4,6 +4,24 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ## [Unreleased]
 
+### 2025-07-10
+
+#### High Priority Code Quality Fixes (Phase 1)
+
+**Configuration System Improvements**:
+- **Fixed Configuration.get() falsy values bug** (config.py:266): Replaced 'or default' logic with proper None check to preserve legitimate zero/false configurations
+- **Added comprehensive test coverage** for falsy values scenarios (0, False, empty strings)
+
+**HTTP Client Architecture Improvements**:
+- **Enhanced APIClient initialization** (api_client.py:33): Pass base_url to httpx.AsyncClient constructor for cleaner URL handling
+- **Simplified API request logic**: Removed manual URL concatenation in favor of httpx's built-in relative path resolution
+- **Improved error handling**: Updated logging to use endpoint paths instead of full URLs
+
+**Testing and Validation**:
+- All 93 existing tests continue to pass
+- Added new test for falsy values edge cases
+- Maintained full backward compatibility
+
 ### 2025-07-08
 
 #### Documentation Transformation and Project Modernization
