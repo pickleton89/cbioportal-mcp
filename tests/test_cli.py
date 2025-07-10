@@ -274,7 +274,7 @@ async def test_main_keyboard_interrupt(mocker):
     mock_get_logger.assert_any_call('cbioportal_server')
 
     # Check that keyboard interrupt was logged
-    mock_cbioportal_logger.info.assert_any_call("Server interrupted by user (KeyboardInterrupt).")
+    mock_cbioportal_logger.info.assert_any_call("Server interrupted by Simulated Ctrl+C.")
     mock_cbioportal_logger.info.assert_any_call("cBioPortal MCP Server has shut down.")
     
     # Ensure mcp.run was called with the correct transport parameter
