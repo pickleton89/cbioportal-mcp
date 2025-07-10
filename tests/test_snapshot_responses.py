@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 from syrupy.assertion import SnapshotAssertion
 
-from cbioportal_server import CBioPortalMCPServer
+from cbioportal_mcp.server import CBioPortalMCPServer
 
 @pytest.fixture
 def server_instance(cbioportal_server_instance): # Use the standard fixture from conftest

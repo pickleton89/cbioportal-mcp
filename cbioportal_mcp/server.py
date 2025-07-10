@@ -13,9 +13,9 @@ from typing import Any, Dict, List, Optional, AsyncGenerator
 
 import httpx
 from fastmcp import FastMCP
-from api_client import APIClient # Changed from relative for test compatibility
-from utils.pagination import paginate_results, collect_all_results
-from utils.validation import (
+from .api_client import APIClient
+from .utils.pagination import paginate_results, collect_all_results
+from .utils.validation import (
     validate_page_params,
     validate_sort_params,
     validate_study_id,
@@ -24,9 +24,9 @@ from utils.validation import (
     validate_gene_id_type,
     validate_projection,
 )
-from utils.logging import setup_logging, get_logger
-from endpoints import StudiesEndpoints, GenesEndpoints, SamplesEndpoints, MolecularProfilesEndpoints
-from config import load_config, create_example_config, Configuration
+from .utils.logging import setup_logging, get_logger
+from .endpoints import StudiesEndpoints, GenesEndpoints, SamplesEndpoints, MolecularProfilesEndpoints
+from .config import load_config, create_example_config, Configuration
 
 # Ensure project root is in sys.path for utility imports if needed
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

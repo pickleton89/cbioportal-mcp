@@ -11,14 +11,14 @@ Contains all molecular profile and clinical data related endpoint methods:
 from typing import Any, Dict, List, Optional
 
 import httpx
-from api_client import APIClient
-from constants import FETCH_ALL_PAGE_SIZE
-from utils.validation import (
+from ..api_client import APIClient
+from ..constants import FETCH_ALL_PAGE_SIZE
+from ..utils.validation import (
     validate_page_params,
     validate_sort_params,
     validate_study_id,
 )
-from utils.logging import get_logger
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 

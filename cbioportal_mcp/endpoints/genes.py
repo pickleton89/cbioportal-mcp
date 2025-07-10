@@ -12,9 +12,9 @@ import asyncio
 import time
 from typing import Any, Dict, List, Optional
 
-from api_client import APIClient
-from constants import FETCH_ALL_PAGE_SIZE
-from utils.validation import (
+from ..api_client import APIClient
+from ..constants import FETCH_ALL_PAGE_SIZE
+from ..utils.validation import (
     validate_page_params,
     validate_sort_params,
     validate_keyword,
@@ -22,7 +22,7 @@ from utils.validation import (
     validate_gene_id_type,
     validate_projection,
 )
-from utils.logging import get_logger
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 

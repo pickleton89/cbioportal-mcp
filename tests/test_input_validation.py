@@ -3,7 +3,7 @@
 
 import pytest
 
-from cbioportal_server import CBioPortalMCPServer
+from cbioportal_mcp.server import CBioPortalMCPServer
 
 class TestInputValidation:
     """Tests for input validation of CBioPortalMCPServer methods."""

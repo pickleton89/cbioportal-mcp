@@ -4,13 +4,13 @@
 import pytest
 from unittest.mock import patch
 
-from cbioportal_server import CBioPortalMCPServer
+from cbioportal_mcp.server import CBioPortalMCPServer
 
 # Fixtures like cbioportal_server_instance, mock_study_data, mock_gene_data
 # are expected to be defined in conftest.py
 
 
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 @pytest.mark.asyncio
 async def test_get_study_details(
     mock_api_request, cbioportal_server_instance: CBioPortalMCPServer, mock_study_data
@@ -25,7 +25,7 @@ async def test_get_study_details(
     assert result["study"] == mock_study_data
 
 
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 @pytest.mark.asyncio
 async def test_get_genes(mock_api_request, cbioportal_server_instance: CBioPortalMCPServer, mock_gene_data):
     """Test gene retrieval works correctly."""

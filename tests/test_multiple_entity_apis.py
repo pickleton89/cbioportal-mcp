@@ -4,7 +4,7 @@
 import pytest
 from unittest.mock import patch, call
 
-from cbioportal_server import CBioPortalMCPServer
+from cbioportal_mcp.server import CBioPortalMCPServer
 
 # Pytest Fixtures (e.g., cbioportal_server_instance, mock_study_detail_brca, etc.)
 # are expected to be defined in conftest.py
@@ -12,7 +12,7 @@ from cbioportal_server import CBioPortalMCPServer
 
 # --- Tests for get_multiple_studies ---
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_get_multiple_studies_success(
     mock_make_api_request,
     cbioportal_server_instance: CBioPortalMCPServer,
@@ -53,7 +53,7 @@ async def test_get_multiple_studies_success(
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_get_multiple_studies_partial_failure(
     mock_make_api_request, cbioportal_server_instance: CBioPortalMCPServer, mock_study_detail_brca
 ):
@@ -103,7 +103,7 @@ async def test_get_multiple_studies_partial_failure(
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_get_multiple_studies_empty_list(
     mock_make_api_request, cbioportal_server_instance: CBioPortalMCPServer
 ):
@@ -122,7 +122,7 @@ async def test_get_multiple_studies_empty_list(
 
 # --- Tests for get_multiple_genes ---
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_get_multiple_genes_single_batch_success(
     mock_make_api_request,
     cbioportal_server_instance: CBioPortalMCPServer,
@@ -157,7 +157,7 @@ async def test_get_multiple_genes_single_batch_success(
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_get_multiple_genes_multiple_batches_success(
     mock_make_api_request,
     cbioportal_server_instance: CBioPortalMCPServer,
@@ -211,7 +211,7 @@ async def test_get_multiple_genes_multiple_batches_success(
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_get_multiple_genes_partial_batch_failure(
     mock_make_api_request, cbioportal_server_instance: CBioPortalMCPServer
 ):
@@ -266,7 +266,7 @@ async def test_get_multiple_genes_partial_batch_failure(
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_get_multiple_genes_empty_list(
     mock_make_api_request, cbioportal_server_instance: CBioPortalMCPServer
 ):

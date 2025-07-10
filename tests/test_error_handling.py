@@ -95,7 +95,7 @@ import httpx
         ),
     ],
 )
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 @pytest.mark.asyncio
 async def test_generic_api_error_handling(
     mock_make_api_request,

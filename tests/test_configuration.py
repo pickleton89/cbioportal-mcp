@@ -3,8 +3,8 @@
 
 import pytest
 
-from cbioportal_server import CBioPortalMCPServer
-from config import Configuration
+from cbioportal_mcp.server import CBioPortalMCPServer
+from cbioportal_mcp.config import Configuration
 
 
 @pytest.mark.asyncio

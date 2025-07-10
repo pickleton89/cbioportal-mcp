@@ -37,15 +37,11 @@ Documentation = "https://github.com/pickleton89/cbioportal-mcp#readme"
 Issues = "https://github.com/pickleton89/cbioportal-mcp/issues"
 
 [project.scripts]
-cbioportal-mcp = "cbioportal_server:cli_main"
+cbioportal-mcp = "cbioportal_mcp.server:cli_main"
 
 [tool.hatch.build.targets.wheel]
 include = [
-    "cbioportal_server.py",
-    "api_client.py",
-    "config.py",
-    "utils/",
-    "endpoints/",
+    "cbioportal_mcp/",
 ]
 
 [dependency-groups]

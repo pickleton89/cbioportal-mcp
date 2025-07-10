@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, call
 
-from cbioportal_server import CBioPortalMCPServer
+from cbioportal_mcp.server import CBioPortalMCPServer
 
 
 @pytest.fixture
@@ -199,7 +199,7 @@ cancer_studies_test_cases = [
 ]
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 @pytest.mark.parametrize(
     "scenario_name, page_number, mock_data_fixture_name, expected_has_more, page_size_to_use",
     cancer_studies_test_cases
@@ -233,7 +233,7 @@ async def test_get_cancer_studies_pagination(
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_get_mutations_in_gene_pagination(
     mock_api_request,
     cbioportal_server_instance,
@@ -288,7 +288,7 @@ async def test_get_mutations_in_gene_pagination(
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_get_clinical_data_pagination(
     mock_api_request,
     cbioportal_server_instance, mock_clinical_data_page_1
@@ -317,7 +317,7 @@ async def test_get_clinical_data_pagination(
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_get_molecular_profiles_pagination(
     mock_api_request,
     cbioportal_server_instance, mock_molecular_profiles_data_all # Use a mock that represents all profiles
@@ -343,7 +343,7 @@ async def test_get_molecular_profiles_pagination(
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_paginate_results_basic(mock_make_api_request, cbioportal_server_instance):
     server = cbioportal_server_instance
     endpoint = "studies"
@@ -375,7 +375,7 @@ async def test_paginate_results_basic(mock_make_api_request, cbioportal_server_i
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_paginate_results_empty_first_call(mock_make_api_request, cbioportal_server_instance):
     server = cbioportal_server_instance
     endpoint = "studies"
@@ -402,7 +402,7 @@ async def test_paginate_results_empty_first_call(mock_make_api_request, cbioport
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_paginate_results_with_max_pages(mock_make_api_request, cbioportal_server_instance):
     server = cbioportal_server_instance
     endpoint = "studies"
@@ -440,7 +440,7 @@ async def test_paginate_results_with_max_pages(mock_make_api_request, cbioportal
 
 
 @pytest.mark.asyncio
-@patch("api_client.APIClient.make_api_request")
+@patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_paginate_results_last_page_partial(mock_make_api_request, cbioportal_server_instance):
     server = cbioportal_server_instance
     endpoint = "studies"

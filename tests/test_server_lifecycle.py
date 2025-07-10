@@ -88,8 +88,8 @@ async def test_server_startup_initializes_async_client(
     server = cbioportal_server_instance_unstarted
     assert server.api_client._client is None, "APIClient's client should be None before startup"
 
-    mock_api_client_logger_info = mocker.patch('api_client.logger.info')
-    mock_server_logger_info = mocker.patch('cbioportal_server.logger.info')
+    mock_api_client_logger_info = mocker.patch('cbioportal_mcp.api_client.logger.info')
+    mock_server_logger_info = mocker.patch('cbioportal_mcp.server.logger.info')
     
     await server.startup()
 
@@ -120,8 +120,8 @@ async def test_server_shutdown_closes_async_client(
     # Simulate server startup having initialized the APIClient's client
     server.api_client._client = mock_async_client
 
-    mock_api_client_logger_info = mocker.patch('api_client.logger.info')
-    mock_server_logger_info = mocker.patch('cbioportal_server.logger.info')
+    mock_api_client_logger_info = mocker.patch('cbioportal_mcp.api_client.logger.info')
+    mock_server_logger_info = mocker.patch('cbioportal_mcp.server.logger.info')
     
     await server.shutdown()
 
@@ -143,8 +143,8 @@ async def test_server_shutdown_handles_no_client(cbioportal_server_instance_unst
     server = cbioportal_server_instance_unstarted
     assert server.api_client._client is None  # Ensure APIClient's client is None
 
-    mock_api_client_logger_info = mocker.patch('api_client.logger.info')
-    mock_server_logger_info = mocker.patch('cbioportal_server.logger.info')
+    mock_api_client_logger_info = mocker.patch('cbioportal_mcp.api_client.logger.info')
+    mock_server_logger_info = mocker.patch('cbioportal_mcp.server.logger.info')
 
     try:
         await server.shutdown()  # Should not raise an error

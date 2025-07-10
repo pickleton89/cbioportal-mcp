@@ -13,14 +13,14 @@ import time
 from typing import Any, Dict, List, Optional
 
 import httpx
-from api_client import APIClient
-from utils.validation import (
+from ..api_client import APIClient
+from ..utils.validation import (
     validate_page_params,
     validate_sort_params, 
     validate_study_id,
     validate_keyword,
 )
-from utils.logging import get_logger
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -40,7 +40,7 @@ class StudiesEndpoints:
     ) -> List[Dict[str, Any]]:
         """Collect all results from a paginated endpoint."""
         # This is a temporary method - should be moved to utils in future
-        from utils.pagination import collect_all_results
+        from ..utils.pagination import collect_all_results
         return await collect_all_results(
             self.api_client, endpoint, params, method, json_data
         )
