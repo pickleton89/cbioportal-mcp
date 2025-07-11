@@ -6,19 +6,25 @@ from syrupy.assertion import SnapshotAssertion
 
 from cbioportal_mcp.server import CBioPortalMCPServer
 
+
 @pytest.fixture
-def server_instance(cbioportal_server_instance): # Use the standard fixture from conftest
+def server_instance(
+    cbioportal_server_instance,
+):  # Use the standard fixture from conftest
     """Provides a CBioPortalMCPServer instance."""
     # The cbioportal_server_instance fixture from conftest.py already provides
     # a server with an initialized APIClient. We will mock the APIClient's
     # make_api_request method directly in each test.
     return cbioportal_server_instance
 
+
 @pytest.mark.asyncio
-async def test_get_study_details_snapshot(server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker):
+async def test_get_study_details_snapshot(
+    server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker
+):
     """Test that the response from get_study_details matches the snapshot."""
     study_id_to_test = "acc_tcga"
-    
+
     # Mock the API response
     mock_response_data = {
         "studyId": "acc_tcga",
@@ -47,23 +53,26 @@ async def test_get_study_details_snapshot(server_instance: CBioPortalMCPServer, 
             "name": "Adrenocortical Carcinoma",
             "dedicatedColor": "LightGreen",
             "shortName": "ACC",
-            "parentCancerTypeId": "adrenal_gland"
+            "parentCancerTypeId": "adrenal_gland",
         },
         "cancerTypeId": "acc",
         "numberOfSamplesWithCompleteSampleData": 90,
-        "readPermission": True
+        "readPermission": True,
     }
-    
+
     # Configure the mock client's _make_api_request method
     mock_api_request = AsyncMock(return_value=mock_response_data)
-    server_instance.api_client.make_api_request = mock_api_request # type: ignore
+    server_instance.api_client.make_api_request = mock_api_request  # type: ignore
 
     response = await server_instance.get_study_details(study_id=study_id_to_test)
-    
+
     assert response == snapshot
 
+
 @pytest.mark.asyncio
-async def test_get_cancer_studies_snapshot(server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker):
+async def test_get_cancer_studies_snapshot(
+    server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker
+):
     """Test that the response from get_cancer_studies matches the snapshot."""
     # Mock the API response for get_cancer_studies
     mock_studies_data = [
@@ -89,7 +98,7 @@ async def test_get_cancer_studies_snapshot(server_instance: CBioPortalMCPServer,
             "miRnaSampleCount": 0,
             "rppaSampleCount": 0,
             "massSpectrometrySampleCount": 0,
-            "svSampleCount": 0
+            "svSampleCount": 0,
         },
         {
             "studyId": "blca_tcga_pub",
@@ -113,27 +122,30 @@ async def test_get_cancer_studies_snapshot(server_instance: CBioPortalMCPServer,
             "miRnaSampleCount": 131,
             "rppaSampleCount": 0,
             "massSpectrometrySampleCount": 0,
-            "svSampleCount": 0
-        }
+            "svSampleCount": 0,
+        },
     ]
-    
+
     # Configure the mock client's _make_api_request method
-    # We need to be careful if other tests also mock _make_api_request. 
-    # For simplicity here, we are directly setting it. 
+    # We need to be careful if other tests also mock _make_api_request.
+    # For simplicity here, we are directly setting it.
     # In a larger test suite, consider using mocker.patch.object for more targeted mocking.
     # Mock the api_client.make_api_request for the first page call
     mock_api_request = AsyncMock(return_value=mock_studies_data)
-    server_instance.api_client.make_api_request = mock_api_request # type: ignore
+    server_instance.api_client.make_api_request = mock_api_request  # type: ignore
 
     response = await server_instance.get_cancer_studies(page_number=0, page_size=2)
-    
+
     assert response == snapshot
 
+
 @pytest.mark.asyncio
-async def test_get_molecular_profiles_snapshot(server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker):
+async def test_get_molecular_profiles_snapshot(
+    server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker
+):
     """Test that the response from get_molecular_profiles matches the snapshot."""
     study_id_to_test = "acc_tcga"
-    
+
     # Mock the API response for get_molecular_profiles
     mock_profiles_data = [
         {
@@ -146,7 +158,7 @@ async def test_get_molecular_profiles_snapshot(server_instance: CBioPortalMCPSer
             "patientLevel": False,
             "genericAssayType": "MRNA_EXPRESSION",
             "showProfileInAnalysisTab": True,
-            "sortOrder": 0
+            "sortOrder": 0,
         },
         {
             "molecularProfileId": "acc_tcga_mutations",
@@ -158,19 +170,24 @@ async def test_get_molecular_profiles_snapshot(server_instance: CBioPortalMCPSer
             "patientLevel": False,
             "genericAssayType": "MUTATION",
             "showProfileInAnalysisTab": True,
-            "sortOrder": 10
-        }
+            "sortOrder": 10,
+        },
     ]
     # Mock the api_client.make_api_request for the first page call
     mock_api_request = AsyncMock(return_value=mock_profiles_data)
-    server_instance.api_client.make_api_request = mock_api_request # type: ignore
+    server_instance.api_client.make_api_request = mock_api_request  # type: ignore
 
-    response = await server_instance.get_molecular_profiles(study_id=study_id_to_test, page_number=0, page_size=2)
-    
+    response = await server_instance.get_molecular_profiles(
+        study_id=study_id_to_test, page_number=0, page_size=2
+    )
+
     assert response == snapshot
 
+
 @pytest.mark.asyncio
-async def test_get_cancer_types_snapshot(server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker):
+async def test_get_cancer_types_snapshot(
+    server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker
+):
     """Test that the response from get_cancer_types matches the snapshot."""
     # Mock the API response for get_cancer_types
     mock_cancer_types_data = [
@@ -179,29 +196,32 @@ async def test_get_cancer_types_snapshot(server_instance: CBioPortalMCPServer, s
             "name": "Adrenocortical Carcinoma",
             "dedicatedColor": "LightGreen",
             "shortName": "ACC",
-            "parentCancerTypeId": "adrenal_gland"
+            "parentCancerTypeId": "adrenal_gland",
         },
         {
             "cancerTypeId": "blca",
             "name": "Bladder Urothelial Carcinoma",
             "dedicatedColor": "Blue",
             "shortName": "BLCA",
-            "parentCancerTypeId": "bladder"
-        }
+            "parentCancerTypeId": "bladder",
+        },
     ]
     # Mock the api_client.make_api_request for the first page call
     mock_api_request = AsyncMock(return_value=mock_cancer_types_data)
-    server_instance.api_client.make_api_request = mock_api_request # type: ignore
+    server_instance.api_client.make_api_request = mock_api_request  # type: ignore
 
     response = await server_instance.get_cancer_types(page_number=0, page_size=2)
-    
+
     assert response == snapshot
 
+
 @pytest.mark.asyncio
-async def test_get_samples_in_study_snapshot(server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker):
+async def test_get_samples_in_study_snapshot(
+    server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker
+):
     """Test that the response from get_samples_in_study matches the snapshot."""
     study_id_to_test = "acc_tcga"
-    
+
     # Mock the API response for get_samples_in_study
     mock_samples_data = [
         {
@@ -209,29 +229,34 @@ async def test_get_samples_in_study_snapshot(server_instance: CBioPortalMCPServe
             "studyId": "acc_tcga",
             "patientId": "TCGA-OR-A5J1",
             "sampleType": "PRIMARY",
-            "cancerType": "Adrenocortical Carcinoma"
+            "cancerType": "Adrenocortical Carcinoma",
         },
         {
             "sampleId": "TCGA-OR-A5J2-01",
             "studyId": "acc_tcga",
             "patientId": "TCGA-OR-A5J2",
             "sampleType": "PRIMARY",
-            "cancerType": "Adrenocortical Carcinoma"
-        }
+            "cancerType": "Adrenocortical Carcinoma",
+        },
     ]
     # Mock the api_client.make_api_request for the first page call
     mock_api_request = AsyncMock(return_value=mock_samples_data)
-    server_instance.api_client.make_api_request = mock_api_request # type: ignore
+    server_instance.api_client.make_api_request = mock_api_request  # type: ignore
 
-    response = await server_instance.get_samples_in_study(study_id=study_id_to_test, page_number=0, page_size=2)
-    
+    response = await server_instance.get_samples_in_study(
+        study_id=study_id_to_test, page_number=0, page_size=2
+    )
+
     assert response == snapshot
 
+
 @pytest.mark.asyncio
-async def test_search_genes_snapshot(server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker):
+async def test_search_genes_snapshot(
+    server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker
+):
     """Test that the response from search_genes matches the snapshot."""
     keyword_to_search = "BRCA"
-    
+
     # Mock the API response for search_genes
     mock_genes_data = [
         {
@@ -239,29 +264,34 @@ async def test_search_genes_snapshot(server_instance: CBioPortalMCPServer, snaps
             "hugoGeneSymbol": "BRCA1",
             "type": "protein-coding",
             "oncogene": False,
-            "tumorSuppressor": True
+            "tumorSuppressor": True,
         },
         {
             "entrezGeneId": 675,
             "hugoGeneSymbol": "BRCA2",
             "type": "protein-coding",
             "oncogene": False,
-            "tumorSuppressor": True
-        }
+            "tumorSuppressor": True,
+        },
     ]
     # Mock the api_client.make_api_request for the first page call
     mock_api_request = AsyncMock(return_value=mock_genes_data)
-    server_instance.api_client.make_api_request = mock_api_request # type: ignore
+    server_instance.api_client.make_api_request = mock_api_request  # type: ignore
 
-    response = await server_instance.search_genes(keyword=keyword_to_search, page_number=0, page_size=2)
-    
+    response = await server_instance.search_genes(
+        keyword=keyword_to_search, page_number=0, page_size=2
+    )
+
     assert response == snapshot
 
+
 @pytest.mark.asyncio
-async def test_search_studies_snapshot(server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker):
+async def test_search_studies_snapshot(
+    server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker
+):
     """Test that the response from search_studies matches the snapshot."""
     keyword_to_search = "PanCancer"
-    
+
     # Mock the API response for search_studies
     mock_studies_search_data = [
         {
@@ -274,7 +304,7 @@ async def test_search_studies_snapshot(server_instance: CBioPortalMCPServer, sna
             "pmid": "29622464",
             "citation": "Cancer Genome Atlas Research Network. (2018). The Immune Landscape of Cancer. Immunity, 48(4).",
             "groups": "PANCANCER;PANCAN",
-            "status": 0
+            "status": 0,
         },
         {
             "studyId": "all_phase2_target_2018_pub",
@@ -286,36 +316,43 @@ async def test_search_studies_snapshot(server_instance: CBioPortalMCPServer, sna
             "pmid": "29622464",
             "citation": "Cancer Genome Atlas Research Network. (2018). The Immune Landscape of Cancer. Immunity, 48(4).",
             "groups": "PANCAN",
-            "status": 0
-        }
+            "status": 0,
+        },
     ]
-    
+
     mock_response_with_pagination = {
         "items": mock_studies_search_data,
         "pagination": {
             "page_number": 0,
             "page_size": 2,
-            "total_items": 15, # Assuming 15 total matching studies for this mock
+            "total_items": 15,  # Assuming 15 total matching studies for this mock
             "total_pages": 8,
-            "sort_by": "studyId", # Typical sort for study searches
+            "sort_by": "studyId",  # Typical sort for study searches
             "direction": "ASC",
-            "has_more": True
-        }
+            "has_more": True,
+        },
     }
-    
+
     # Mock the _paginate_results helper method
     mock_paginate_request = AsyncMock(return_value=mock_response_with_pagination)
-    server_instance._paginate_results = mock_paginate_request # type: ignore
+    server_instance._paginate_results = mock_paginate_request  # type: ignore
 
-    response = await server_instance.search_studies(keyword=keyword_to_search, page_number=0, page_size=2)
-    
+    response = await server_instance.search_studies(
+        keyword=keyword_to_search, page_number=0, page_size=2
+    )
+
     assert response == snapshot
 
+
 @pytest.mark.asyncio
-async def test_get_mutations_in_gene_snapshot(server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker):
+async def test_get_mutations_in_gene_snapshot(
+    server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker
+):
     """Test that the response from get_mutations_in_gene matches the snapshot."""
     study_id_to_test = "acc_tcga"
-    sample_list_id_to_test = "acc_tcga_all" # This is often studyId + suffix like _all, _cnaseq, _sequenced
+    sample_list_id_to_test = (
+        "acc_tcga_all"  # This is often studyId + suffix like _all, _cnaseq, _sequenced
+    )
     gene_id_to_test = "TP53"
     # page_number and page_size will use defaults (0 and 50)
 
@@ -327,15 +364,15 @@ async def test_get_mutations_in_gene_snapshot(server_instance: CBioPortalMCPServ
             "name": "mRNA expression (RNA Seq V2 RSEM)",
             "molecularAlterationType": "MRNA_EXPRESSION",
             "datatype": "CONTINUOUS",
-            "showProfileInAnalysisTab": True
+            "showProfileInAnalysisTab": True,
         },
         {
-            "molecularProfileId": "acc_tcga_mutations", # This is the one the method should find and use
+            "molecularProfileId": "acc_tcga_mutations",  # This is the one the method should find and use
             "studyId": "acc_tcga",
             "name": "Mutations",
             "molecularAlterationType": "MUTATION_EXTENDED",
             "datatype": "MAF",
-            "showProfileInAnalysisTab": True
+            "showProfileInAnalysisTab": True,
         },
         {
             "molecularProfileId": "acc_tcga_cna",
@@ -343,8 +380,8 @@ async def test_get_mutations_in_gene_snapshot(server_instance: CBioPortalMCPServ
             "name": "Copy Number Alterations",
             "molecularAlterationType": "COPY_NUMBER_ALTERATION",
             "datatype": "DISCRETE",
-            "showProfileInAnalysisTab": True
-        }
+            "showProfileInAnalysisTab": True,
+        },
     ]
 
     # Mock data for the second API call (to fetch mutations for the identified molecular profile)
@@ -367,7 +404,7 @@ async def test_get_mutations_in_gene_snapshot(server_instance: CBioPortalMCPServ
             "variantAllele": "T",
             "proteinPosStart": 248,
             "proteinPosEnd": 248,
-            "keyword": "TP53 Missense_Mutation R248W"
+            "keyword": "TP53 Missense_Mutation R248W",
         },
         {
             "uniqueSampleKey": "TCGA-OR-A5J2-01:acc_tcga_mutations",
@@ -387,25 +424,30 @@ async def test_get_mutations_in_gene_snapshot(server_instance: CBioPortalMCPServ
             "variantAllele": "T",
             "proteinPosStart": 136,
             "proteinPosEnd": 136,
-            "keyword": "TP53 Nonsense_Mutation Q136*"
-        }
+            "keyword": "TP53 Nonsense_Mutation Q136*",
+        },
     ]
 
     # Mock the _make_api_request method to return different values on subsequent calls
-    mock_api_call = AsyncMock(side_effect=[mock_molecular_profiles_list, mock_mutations_data])
-    server_instance.api_client.make_api_request = mock_api_call # type: ignore
+    mock_api_call = AsyncMock(
+        side_effect=[mock_molecular_profiles_list, mock_mutations_data]
+    )
+    server_instance.api_client.make_api_request = mock_api_call  # type: ignore
 
     response = await server_instance.get_mutations_in_gene(
         study_id=study_id_to_test,
         sample_list_id=sample_list_id_to_test,
-        gene_id=gene_id_to_test
+        gene_id=gene_id_to_test,
         # Using default page_number, page_size, etc.
     )
 
     assert response == snapshot
 
+
 @pytest.mark.asyncio
-async def test_get_clinical_data_snapshot(server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker):
+async def test_get_clinical_data_snapshot(
+    server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker
+):
     """Test that the response from get_clinical_data matches the snapshot (fetching all attributes)."""
     study_id_to_test = "acc_tcga"
     # No sample_list_id or attribute_ids needed for this test case (fetches all patient data)
@@ -417,43 +459,43 @@ async def test_get_clinical_data_snapshot(server_instance: CBioPortalMCPServer, 
         {
             "studyId": "acc_tcga",
             "patientId": "TCGA-OR-A5J1",
-            "sampleId": "TCGA-OR-A5J1-01", # Sample ID might still be present in raw data
+            "sampleId": "TCGA-OR-A5J1-01",  # Sample ID might still be present in raw data
             "clinicalAttributeId": "AGE",
-            "value": "50"
+            "value": "50",
         },
         {
             "studyId": "acc_tcga",
             "patientId": "TCGA-OR-A5J1",
             "sampleId": "TCGA-OR-A5J1-01",
             "clinicalAttributeId": "SEX",
-            "value": "Female"
+            "value": "Female",
         },
         {
             "studyId": "acc_tcga",
             "patientId": "TCGA-OR-A5J2",
             "sampleId": "TCGA-OR-A5J2-01",
             "clinicalAttributeId": "AGE",
-            "value": "65"
+            "value": "65",
         },
         {
             "studyId": "acc_tcga",
             "patientId": "TCGA-OR-A5J2",
             "sampleId": "TCGA-OR-A5J2-01",
             "clinicalAttributeId": "SEX",
-            "value": "Male"
+            "value": "Male",
         },
         {
-            "studyId": "acc_tcga", # Test a third patient with one attribute
+            "studyId": "acc_tcga",  # Test a third patient with one attribute
             "patientId": "TCGA-OR-A5J3",
             "sampleId": "TCGA-OR-A5J3-01",
             "clinicalAttributeId": "AJCC_PATHOLOGIC_TUMOR_STAGE",
-            "value": "STAGE I"
-        }
+            "value": "STAGE I",
+        },
     ]
 
     # Mock the _make_api_request method as get_clinical_data calls it directly
     mock_api_call = AsyncMock(return_value=mock_flat_clinical_data_from_api)
-    server_instance.api_client.make_api_request = mock_api_call # type: ignore
+    server_instance.api_client.make_api_request = mock_api_call  # type: ignore
 
     response = await server_instance.get_clinical_data(
         study_id=study_id_to_test
@@ -462,8 +504,11 @@ async def test_get_clinical_data_snapshot(server_instance: CBioPortalMCPServer, 
 
     assert response == snapshot
 
+
 @pytest.mark.asyncio
-async def test_get_clinical_data_specific_attributes_snapshot(server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker):
+async def test_get_clinical_data_specific_attributes_snapshot(
+    server_instance: CBioPortalMCPServer, snapshot: SnapshotAssertion, mocker
+):
     """Test that the response from get_clinical_data matches the snapshot when specific attributes are requested."""
     study_id_to_test = "acc_tcga"
     attribute_ids_to_test = ["AGE", "SEX"]
@@ -477,29 +522,29 @@ async def test_get_clinical_data_specific_attributes_snapshot(server_instance: C
             "patientId": "TCGA-OR-A5J1",
             "sampleId": "TCGA-OR-A5J1-01",
             "clinicalAttributeId": "AGE",
-            "value": "50"
+            "value": "50",
         },
         {
             "studyId": "acc_tcga",
             "patientId": "TCGA-OR-A5J1",
             "sampleId": "TCGA-OR-A5J1-01",
             "clinicalAttributeId": "SEX",
-            "value": "Female"
+            "value": "Female",
         },
         {
             "studyId": "acc_tcga",
             "patientId": "TCGA-OR-A5J2",
             "sampleId": "TCGA-OR-A5J2-01",
             "clinicalAttributeId": "AGE",
-            "value": "65"
+            "value": "65",
         },
         {
             "studyId": "acc_tcga",
             "patientId": "TCGA-OR-A5J2",
             "sampleId": "TCGA-OR-A5J2-01",
             "clinicalAttributeId": "SEX",
-            "value": "Male"
-        }
+            "value": "Male",
+        },
         # Note: We are only returning data for AGE and SEX, as requested.
         # A patient like TCGA-OR-A5J3 who only had AJCC_PATHOLOGIC_TUMOR_STAGE in the previous test
         # would not appear here unless that attribute was also requested and returned by the mock.
@@ -507,34 +552,38 @@ async def test_get_clinical_data_specific_attributes_snapshot(server_instance: C
 
     # Mock the _make_api_request method
     mock_api_call = AsyncMock(return_value=mock_flat_clinical_data_from_api_specific)
-    server_instance.api_client.make_api_request = mock_api_call # type: ignore
+    server_instance.api_client.make_api_request = mock_api_call  # type: ignore
 
     response = await server_instance.get_clinical_data(
         study_id=study_id_to_test,
-        attribute_ids=attribute_ids_to_test
+        attribute_ids=attribute_ids_to_test,
         # Using default page_number, page_size, etc.
     )
 
     # Assert that _make_api_request was called correctly for the /fetch endpoint
     expected_endpoint = f"studies/{study_id_to_test}/clinical-data/fetch"
-    expected_payload = {"attributeIds": attribute_ids_to_test, "clinicalDataType": "PATIENT"}
+    expected_payload = {
+        "attributeIds": attribute_ids_to_test,
+        "clinicalDataType": "PATIENT",
+    }
     # Default params for pagination are pageNumber=0, pageSize=50, direction="ASC", clinicalDataType="PATIENT"
     # The clinicalDataType in the payload for /fetch is separate from query params if any.
     expected_api_call_params = {
-        "pageNumber": 0, 
-        "pageSize": 50, 
-        "direction": "ASC", 
-        "clinicalDataType": "PATIENT"
+        "pageNumber": 0,
+        "pageSize": 50,
+        "direction": "ASC",
+        "clinicalDataType": "PATIENT",
     }
 
     mock_api_call.assert_called_once_with(
         expected_endpoint,
         method="POST",
-        params=expected_api_call_params, # Check if these are the correct default query params
-        json_data=expected_payload
+        params=expected_api_call_params,  # Check if these are the correct default query params
+        json_data=expected_payload,
     )
 
     assert response == snapshot
+
 
 @pytest.mark.asyncio
 async def test_get_gene_panels_for_study_snapshot(server_instance, snapshot, mocker):
@@ -547,8 +596,8 @@ async def test_get_gene_panels_for_study_snapshot(server_instance, snapshot, moc
             "description": "341 cancer-associated genes",
             "genes": [
                 {"entrezGeneId": 1, "hugoGeneSymbol": "GENE1"},
-                {"entrezGeneId": 2, "hugoGeneSymbol": "GENE2"}
-            ]
+                {"entrezGeneId": 2, "hugoGeneSymbol": "GENE2"},
+            ],
         },
         {
             "genePanelId": "PEDS-IMPACT",
@@ -556,23 +605,27 @@ async def test_get_gene_panels_for_study_snapshot(server_instance, snapshot, moc
             "description": "Pediatric panel of genes",
             "genes": [
                 {"entrezGeneId": 3, "hugoGeneSymbol": "GENE3"},
-                {"entrezGeneId": 4, "hugoGeneSymbol": "P53_MUTANT"} # Example with specific variant
-            ]
-        }
+                {
+                    "entrezGeneId": 4,
+                    "hugoGeneSymbol": "P53_MUTANT",
+                },  # Example with specific variant
+            ],
+        },
     ]
 
     # Mock the _make_api_request method
     mocker.patch.object(
-        server_instance.api_client,
-        'make_api_request',
-        return_value=mock_response
+        server_instance.api_client, "make_api_request", return_value=mock_response
     )
 
     # Call the method under test
-    result = await server_instance.get_gene_panels_for_study(study_id=study_id, page_size=2) # Fetch one page
+    result = await server_instance.get_gene_panels_for_study(
+        study_id=study_id, page_size=2
+    )  # Fetch one page
 
     # Assert the result against the snapshot
     assert result == snapshot
+
 
 @pytest.mark.asyncio
 async def test_get_gene_panel_details_snapshot(server_instance, snapshot, mocker):
@@ -586,22 +639,21 @@ async def test_get_gene_panel_details_snapshot(server_instance, snapshot, mocker
             "genes": [
                 {"entrezGeneId": 7157, "hugoGeneSymbol": "TP53"},
                 {"entrezGeneId": 207, "hugoGeneSymbol": "AKT1"},
-                {"entrezGeneId": 595, "hugoGeneSymbol": "CCND1"}
-            ]
+                {"entrezGeneId": 595, "hugoGeneSymbol": "CCND1"},
+            ],
         }
     ]
 
     # Mock the _make_api_request method
     mocker.patch.object(
-        server_instance.api_client,
-        'make_api_request',
-        return_value=mock_response
+        server_instance.api_client, "make_api_request", return_value=mock_response
     )
 
     # Call the method under test
     # The method itself expects to get a list from _make_api_request and will extract the first element
-    result = await server_instance.get_gene_panel_details(gene_panel_id=gene_panel_id, projection="DETAILED")
+    result = await server_instance.get_gene_panel_details(
+        gene_panel_id=gene_panel_id, projection="DETAILED"
+    )
 
     # Assert the result against the snapshot
     assert result == snapshot
-

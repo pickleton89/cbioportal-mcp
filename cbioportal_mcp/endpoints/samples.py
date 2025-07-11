@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 class SamplesEndpoints:
     """Handles all sample-related endpoints for the cBioPortal MCP server."""
-    
+
     def __init__(self, api_client: APIClient):
         self.api_client = api_client
 
@@ -86,11 +86,11 @@ class SamplesEndpoints:
     async def get_sample_list_id(self, study_id: str, sample_list_id: str) -> Dict:
         """
         Get sample list information for a specific study and sample list ID.
-        
+
         Args:
             study_id: The ID of the cancer study
             sample_list_id: The ID of the sample list
-            
+
         Returns:
             Dictionary containing sample list information
         """

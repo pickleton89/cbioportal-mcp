@@ -27,7 +27,9 @@ async def test_get_study_details(
 
 @patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 @pytest.mark.asyncio
-async def test_get_genes(mock_api_request, cbioportal_server_instance: CBioPortalMCPServer, mock_gene_data):
+async def test_get_genes(
+    mock_api_request, cbioportal_server_instance: CBioPortalMCPServer, mock_gene_data
+):
     """Test gene retrieval works correctly."""
     gene_ids_input = ["BRCA1", "672"]
     mock_api_request.return_value = [mock_gene_data]

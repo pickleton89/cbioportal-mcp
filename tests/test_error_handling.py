@@ -6,7 +6,6 @@ from unittest.mock import patch
 import httpx
 
 
-
 @pytest.mark.parametrize(
     "method_name_to_test, method_args, method_kwargs, exception_to_raise, expected_error_prefix",
     [
@@ -57,9 +56,7 @@ import httpx
             {"gene_id_type": "HUGO_SYMBOL", "projection": "SUMMARY"},  # kwargs
             httpx.RequestError(
                 message="Network error while fetching gene TP53",
-                request=httpx.Request(
-                    "GET", "/api/genes/fetch"
-                ),
+                request=httpx.Request("GET", "/api/genes/fetch"),
             ),
             "Failed to get gene information",
         ),
@@ -99,7 +96,7 @@ import httpx
 @pytest.mark.asyncio
 async def test_generic_api_error_handling(
     mock_make_api_request,
-    cbioportal_server_instance, # This fixture is defined in conftest.py
+    cbioportal_server_instance,  # This fixture is defined in conftest.py
     method_name_to_test,
     method_args,
     method_kwargs,
@@ -118,9 +115,7 @@ async def test_generic_api_error_handling(
         and len(method_args) == 1
         and isinstance(method_args[0], tuple)
     ):
-        actual_args = list(
-            method_args[0]
-        )
+        actual_args = list(method_args[0])
     else:
         actual_args = list(method_args)
 

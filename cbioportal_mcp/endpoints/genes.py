@@ -3,7 +3,7 @@ Genes endpoint module for the cBioPortal MCP server.
 
 Contains all gene-related endpoint methods:
 - search_genes: Search genes by keyword with pagination
-- get_genes: Get gene information using batch endpoint  
+- get_genes: Get gene information using batch endpoint
 - get_multiple_genes: Fetch multiple genes concurrently
 - get_mutations_in_gene: Get mutations in a specific gene
 """
@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 
 class GenesEndpoints:
     """Handles all gene-related endpoints for the cBioPortal MCP server."""
-    
+
     def __init__(self, api_client: APIClient):
         self.api_client = api_client
 

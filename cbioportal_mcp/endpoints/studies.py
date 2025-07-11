@@ -3,7 +3,7 @@ Studies endpoint module for the cBioPortal MCP server.
 
 Contains all study-related endpoint methods:
 - get_cancer_studies: List cancer studies with pagination
-- search_studies: Search studies by keyword  
+- search_studies: Search studies by keyword
 - get_study_details: Get detailed study information
 - get_multiple_studies: Fetch multiple studies concurrently
 """
@@ -16,7 +16,7 @@ import httpx
 from ..api_client import APIClient
 from ..utils.validation import (
     validate_page_params,
-    validate_sort_params, 
+    validate_sort_params,
     validate_study_id,
     validate_keyword,
 )
@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 
 class StudiesEndpoints:
     """Handles all study-related endpoints for the cBioPortal MCP server."""
-    
+
     def __init__(self, api_client: APIClient):
         self.api_client = api_client
 
@@ -41,6 +41,7 @@ class StudiesEndpoints:
         """Collect all results from a paginated endpoint."""
         # This is a temporary method - should be moved to utils in future
         from ..utils.pagination import collect_all_results
+
         return await collect_all_results(
             self.api_client, endpoint, params, method, json_data
         )

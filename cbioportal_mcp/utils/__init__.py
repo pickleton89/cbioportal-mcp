@@ -20,7 +20,7 @@ __all__ = [
     "paginate_results",
     "collect_all_results",
     "validate_page_params",
-    "validate_study_id", 
+    "validate_study_id",
     "validate_gene_id",
     "validate_sort_params",
     "setup_logging",

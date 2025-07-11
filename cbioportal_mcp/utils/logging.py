@@ -16,7 +16,7 @@ def setup_logging(
 ) -> None:
     """
     Configure logging for the application.
-    
+
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         format_string: Custom format string for log messages
@@ -24,10 +24,10 @@ def setup_logging(
     """
     if format_string is None:
         format_string = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    
+
     if handler is None:
         handler = logging.StreamHandler(sys.stderr)
-    
+
     logging.basicConfig(
         level=level.upper(),
         format=format_string,
@@ -38,10 +38,10 @@ def setup_logging(
 def get_logger(name: str) -> logging.Logger:
     """
     Get a logger instance with the specified name.
-    
+
     Args:
         name: Logger name (typically __name__)
-        
+
     Returns:
         Configured logger instance
     """
@@ -51,7 +51,7 @@ def get_logger(name: str) -> logging.Logger:
 def log_api_request(logger: logging.Logger, endpoint: str, method: str = "GET") -> None:
     """
     Log an API request in a standardized format.
-    
+
     Args:
         logger: Logger instance to use
         endpoint: API endpoint being requested
@@ -68,7 +68,7 @@ def log_api_response(
 ) -> None:
     """
     Log an API response in a standardized format.
-    
+
     Args:
         logger: Logger instance to use
         endpoint: API endpoint that was requested
@@ -80,7 +80,7 @@ def log_api_response(
         parts.append(f"status={status_code}")
     if result_count is not None:
         parts.append(f"results={result_count}")
-    
+
     logger.debug(" ".join(parts))
 
 
@@ -93,7 +93,7 @@ def log_pagination_info(
 ) -> None:
     """
     Log pagination information in a standardized format.
-    
+
     Args:
         logger: Logger instance to use
         page: Current page number
@@ -114,7 +114,7 @@ def log_error_with_context(
 ) -> None:
     """
     Log an error with additional context information.
-    
+
     Args:
         logger: Logger instance to use
         error: Exception that occurred
@@ -123,5 +123,5 @@ def log_error_with_context(
     """
     context_parts = [f"{k}={v}" for k, v in kwargs.items()]
     context_str = f" ({', '.join(context_parts)})" if context_parts else ""
-    
+
     logger.error(f"Error {context}{context_str}: {str(error)}", exc_info=True)

@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 class MolecularProfilesEndpoints:
     """Handles all molecular profile and clinical data endpoints for the cBioPortal MCP server."""
-    
+
     def __init__(self, api_client: APIClient):
         self.api_client = api_client
 
@@ -40,6 +40,7 @@ class MolecularProfilesEndpoints:
         """Collect all results from a paginated endpoint."""
         # This is a temporary method - should be moved to utils in future
         from ..utils.pagination import collect_all_results
+
         return await collect_all_results(
             self.api_client, endpoint, params, method, json_data, limit
         )

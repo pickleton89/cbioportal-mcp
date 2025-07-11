@@ -24,10 +24,14 @@ class TestInputValidation:
             (0, "xyz", TypeError, "page_size must be an integer"),
         ],
     )
-    async def test_get_cancer_studies_invalid_pagination(self, server_instance, page_number, page_size, expected_exception, error_match):
+    async def test_get_cancer_studies_invalid_pagination(
+        self, server_instance, page_number, page_size, expected_exception, error_match
+    ):
         """Test get_cancer_studies with invalid page_number or page_size."""
         with pytest.raises(expected_exception, match=error_match):
-            await server_instance.get_cancer_studies(page_number=page_number, page_size=page_size)
+            await server_instance.get_cancer_studies(
+                page_number=page_number, page_size=page_size
+            )
 
     @pytest.mark.parametrize(
         "study_id, expected_exception, error_match",
@@ -35,10 +39,12 @@ class TestInputValidation:
             ("", ValueError, "study_id cannot be empty"),
             (None, TypeError, "study_id must be a string"),
             (123, TypeError, "study_id must be a string"),
-            (["study1"], TypeError, "study_id must be a string"), # Test with a list
+            (["study1"], TypeError, "study_id must be a string"),  # Test with a list
         ],
     )
-    async def test_get_study_details_invalid_study_id(self, server_instance, study_id, expected_exception, error_match):
+    async def test_get_study_details_invalid_study_id(
+        self, server_instance, study_id, expected_exception, error_match
+    ):
         """Test get_study_details with invalid study_id."""
         with pytest.raises(expected_exception, match=error_match):
             await server_instance.get_study_details(study_id=study_id)
@@ -53,10 +59,14 @@ class TestInputValidation:
             (0, "xyz", TypeError, "page_size must be an integer"),
         ],
     )
-    async def test_get_cancer_types_invalid_pagination(self, server_instance, page_number, page_size, expected_exception, error_match):
+    async def test_get_cancer_types_invalid_pagination(
+        self, server_instance, page_number, page_size, expected_exception, error_match
+    ):
         """Test get_cancer_types with invalid page_number or page_size."""
         with pytest.raises(expected_exception, match=error_match):
-            await server_instance.get_cancer_types(page_number=page_number, page_size=page_size)
+            await server_instance.get_cancer_types(
+                page_number=page_number, page_size=page_size
+            )
 
     @pytest.mark.parametrize(
         "study_id, page_number, page_size, expected_exception, error_match",
@@ -73,10 +83,20 @@ class TestInputValidation:
             ("valid_study", 0, "xyz", TypeError, "page_size must be an integer"),
         ],
     )
-    async def test_get_molecular_profiles_invalid_inputs(self, server_instance, study_id, page_number, page_size, expected_exception, error_match):
+    async def test_get_molecular_profiles_invalid_inputs(
+        self,
+        server_instance,
+        study_id,
+        page_number,
+        page_size,
+        expected_exception,
+        error_match,
+    ):
         """Test get_molecular_profiles with invalid study_id or pagination parameters."""
         with pytest.raises(expected_exception, match=error_match):
-            await server_instance.get_molecular_profiles(study_id=study_id, page_number=page_number, page_size=page_size)
+            await server_instance.get_molecular_profiles(
+                study_id=study_id, page_number=page_number, page_size=page_size
+            )
 
     @pytest.mark.parametrize(
         "study_id, page_number, page_size, expected_exception, error_match",
@@ -93,10 +113,20 @@ class TestInputValidation:
             ("valid_study", 0, "xyz", TypeError, "page_size must be an integer"),
         ],
     )
-    async def test_get_samples_in_study_invalid_inputs(self, server_instance, study_id, page_number, page_size, expected_exception, error_match):
+    async def test_get_samples_in_study_invalid_inputs(
+        self,
+        server_instance,
+        study_id,
+        page_number,
+        page_size,
+        expected_exception,
+        error_match,
+    ):
         """Test get_samples_in_study with invalid study_id or pagination parameters."""
         with pytest.raises(expected_exception, match=error_match):
-            await server_instance.get_samples_in_study(study_id=study_id, page_number=page_number, page_size=page_size)
+            await server_instance.get_samples_in_study(
+                study_id=study_id, page_number=page_number, page_size=page_size
+            )
 
     @pytest.mark.parametrize(
         "keyword, page_number, page_size, expected_exception, error_match",
@@ -113,10 +143,20 @@ class TestInputValidation:
             ("BRCA", 0, "xyz", TypeError, "page_size must be an integer"),
         ],
     )
-    async def test_search_genes_invalid_inputs(self, server_instance, keyword, page_number, page_size, expected_exception, error_match):
+    async def test_search_genes_invalid_inputs(
+        self,
+        server_instance,
+        keyword,
+        page_number,
+        page_size,
+        expected_exception,
+        error_match,
+    ):
         """Test search_genes with invalid keyword or pagination parameters."""
         with pytest.raises(expected_exception, match=error_match):
-            await server_instance.search_genes(keyword=keyword, page_number=page_number, page_size=page_size)
+            await server_instance.search_genes(
+                keyword=keyword, page_number=page_number, page_size=page_size
+            )
 
     @pytest.mark.parametrize(
         "keyword, page_number, page_size, expected_exception, error_match",
@@ -133,8 +173,17 @@ class TestInputValidation:
             ("ACC_TCGA", 0, "xyz", TypeError, "page_size must be an integer"),
         ],
     )
-    async def test_search_studies_invalid_inputs(self, server_instance, keyword, page_number, page_size, expected_exception, error_match):
+    async def test_search_studies_invalid_inputs(
+        self,
+        server_instance,
+        keyword,
+        page_number,
+        page_size,
+        expected_exception,
+        error_match,
+    ):
         """Test search_studies with invalid keyword or pagination parameters."""
         with pytest.raises(expected_exception, match=error_match):
-            await server_instance.search_studies(keyword=keyword, page_number=page_number, page_size=page_size)
-
+            await server_instance.search_studies(
+                keyword=keyword, page_number=page_number, page_size=page_size
+            )

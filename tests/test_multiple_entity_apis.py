@@ -55,7 +55,9 @@ async def test_get_multiple_studies_success(
 @pytest.mark.asyncio
 @patch("cbioportal_mcp.api_client.APIClient.make_api_request")
 async def test_get_multiple_studies_partial_failure(
-    mock_make_api_request, cbioportal_server_instance: CBioPortalMCPServer, mock_study_detail_brca
+    mock_make_api_request,
+    cbioportal_server_instance: CBioPortalMCPServer,
+    mock_study_detail_brca,
 ):
     server = cbioportal_server_instance
     study_ids_to_fetch = ["brca_tcga", "failed_study", "another_failed_study"]
@@ -126,7 +128,7 @@ async def test_get_multiple_studies_empty_list(
 async def test_get_multiple_genes_single_batch_success(
     mock_make_api_request,
     cbioportal_server_instance: CBioPortalMCPServer,
-    mock_gene_batch_response_page1, 
+    mock_gene_batch_response_page1,
     mock_gene_detail_tp53,
     mock_gene_detail_brca1,
 ):

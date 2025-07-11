@@ -14,7 +14,12 @@ from fastmcp import FastMCP
 from .api_client import APIClient
 from .utils.pagination import paginate_results, collect_all_results
 from .utils.logging import setup_logging, get_logger
-from .endpoints import StudiesEndpoints, GenesEndpoints, SamplesEndpoints, MolecularProfilesEndpoints
+from .endpoints import (
+    StudiesEndpoints,
+    GenesEndpoints,
+    SamplesEndpoints,
+    MolecularProfilesEndpoints,
+)
 from .config import load_config, create_example_config, Configuration
 
 # Ensure project root is in sys.path for utility imports if needed
@@ -30,18 +35,20 @@ class CBioPortalMCPServer:
     def __init__(self, config: Configuration):
         """Initialize the cBioPortal MCP Server with dependency injection."""
         self.config = config
-        self.base_url = config.get('server.base_url').rstrip('/')
-        
+        self.base_url = config.get("server.base_url").rstrip("/")
+
         # Initialize API client
-        client_timeout = config.get('server.client_timeout')
-        self.api_client = APIClient(base_url=self.base_url, client_timeout=client_timeout)
-        
+        client_timeout = config.get("server.client_timeout")
+        self.api_client = APIClient(
+            base_url=self.base_url, client_timeout=client_timeout
+        )
+
         # Initialize endpoint modules with dependency injection
         self.studies = StudiesEndpoints(self.api_client)
         self.genes = GenesEndpoints(self.api_client)
         self.samples = SamplesEndpoints(self.api_client)
         self.molecular_profiles = MolecularProfilesEndpoints(self.api_client)
-        
+
         # Initialize FastMCP instance
         self.mcp = FastMCP(
             name="cBioPortal",
@@ -59,19 +66,23 @@ class CBioPortalMCPServer:
     async def startup(self):
         """Initialize async resources when server starts."""
         # self.client = httpx.AsyncClient(timeout=480.0) # Removed
-        await self.api_client.startup() # Added
-        logger.info("cBioPortal MCP Server started, APIClient initialized.") # Updated log
+        await self.api_client.startup()  # Added
+        logger.info(
+            "cBioPortal MCP Server started, APIClient initialized."
+        )  # Updated log
 
     async def shutdown(self):
         """Clean up async resources when server shuts down."""
         # if self.client: # Removed block
         #     await self.client.aclose()
         #     logger.info("cBioPortal MCP Server async HTTP client closed")
-        if hasattr(self, 'api_client') and self.api_client: # Added
+        if hasattr(self, "api_client") and self.api_client:  # Added
             await self.api_client.shutdown()
-            logger.info("cBioPortal MCP Server APIClient shut down.") # Updated log
-        else: # Added for completeness
-            logger.info("cBioPortal MCP Server APIClient was not available or already shut down.")
+            logger.info("cBioPortal MCP Server APIClient shut down.")  # Updated log
+        else:  # Added for completeness
+            logger.info(
+                "cBioPortal MCP Server APIClient was not available or already shut down."
+            )
 
     def _register_tools(self):
         """Register tool methods as MCP tools."""
@@ -82,13 +93,13 @@ class CBioPortalMCPServer:
             "collect_all_results",
             # Studies endpoints
             "get_cancer_studies",
-            "get_cancer_types", 
+            "get_cancer_types",
             "search_studies",
             "get_study_details",
             "get_multiple_studies",
             # Genes endpoints
             "search_genes",
-            "get_genes", 
+            "get_genes",
             "get_multiple_genes",
             "get_mutations_in_gene",
             # Samples endpoints
@@ -100,7 +111,7 @@ class CBioPortalMCPServer:
             "get_gene_panels_for_study",
             "get_gene_panel_details",
         ]
-        
+
         for method_name in tool_methods:
             if hasattr(self, method_name):
                 method = getattr(self, method_name)
@@ -140,11 +151,10 @@ class CBioPortalMCPServer:
     # _make_api_request method was removed.
     # Its functionality is now handled by the APIClient class in api_client.py.
 
-
     # --- Collection-returning methods with pagination ---
 
     # --- Studies endpoints (delegated to StudiesEndpoints) ---
-    
+
     async def get_cancer_studies(
         self,
         page_number: int = 0,
@@ -154,7 +164,9 @@ class CBioPortalMCPServer:
         limit: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Get a list of cancer studies in cBioPortal with pagination support."""
-        return await self.studies.get_cancer_studies(page_number, page_size, sort_by, direction, limit)
+        return await self.studies.get_cancer_studies(
+            page_number, page_size, sort_by, direction, limit
+        )
 
     async def get_cancer_types(
         self,
@@ -165,7 +177,9 @@ class CBioPortalMCPServer:
         limit: Optional[int] = None,
     ) -> Dict:
         """Get a list of all available cancer types in cBioPortal with pagination support."""
-        return await self.studies.get_cancer_types(page_number, page_size, sort_by, direction, limit)
+        return await self.studies.get_cancer_types(
+            page_number, page_size, sort_by, direction, limit
+        )
 
     async def search_studies(
         self,
@@ -177,7 +191,9 @@ class CBioPortalMCPServer:
         limit: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Search for cancer studies by keyword in their name or description with pagination support."""
-        return await self.studies.search_studies(keyword, page_number, page_size, sort_by, direction, limit)
+        return await self.studies.search_studies(
+            keyword, page_number, page_size, sort_by, direction, limit
+        )
 
     async def get_study_details(self, study_id: str) -> Dict[str, Any]:
         """Get detailed information for a specific cancer study."""
@@ -188,7 +204,7 @@ class CBioPortalMCPServer:
         return await self.studies.get_multiple_studies(study_ids)
 
     # --- Genes endpoints (delegated to GenesEndpoints) ---
-    
+
     async def search_genes(
         self,
         keyword: str,
@@ -199,7 +215,9 @@ class CBioPortalMCPServer:
         limit: Optional[int] = None,
     ) -> Dict:
         """Search for genes by keyword in their symbol or name with pagination support."""
-        return await self.genes.search_genes(keyword, page_number, page_size, sort_by, direction, limit)
+        return await self.genes.search_genes(
+            keyword, page_number, page_size, sort_by, direction, limit
+        )
 
     async def get_genes(
         self,
@@ -231,10 +249,19 @@ class CBioPortalMCPServer:
         limit: Optional[int] = None,
     ) -> Dict:
         """Get mutations in a specific gene for a given study and sample list, with pagination support."""
-        return await self.genes.get_mutations_in_gene(gene_id, study_id, sample_list_id, page_number, page_size, sort_by, direction, limit)
+        return await self.genes.get_mutations_in_gene(
+            gene_id,
+            study_id,
+            sample_list_id,
+            page_number,
+            page_size,
+            sort_by,
+            direction,
+            limit,
+        )
 
     # --- Samples endpoints (delegated to SamplesEndpoints) ---
-    
+
     async def get_samples_in_study(
         self,
         study_id: str,
@@ -245,14 +272,16 @@ class CBioPortalMCPServer:
         limit: Optional[int] = None,
     ) -> Dict:
         """Get a list of samples associated with a specific cancer study with pagination support."""
-        return await self.samples.get_samples_in_study(study_id, page_number, page_size, sort_by, direction, limit)
+        return await self.samples.get_samples_in_study(
+            study_id, page_number, page_size, sort_by, direction, limit
+        )
 
     async def get_sample_list_id(self, study_id: str, sample_list_id: str) -> Dict:
         """Get sample list information for a specific study and sample list ID."""
         return await self.samples.get_sample_list_id(study_id, sample_list_id)
 
     # --- Molecular Profiles endpoints (delegated to MolecularProfilesEndpoints) ---
-    
+
     async def get_molecular_profiles(
         self,
         study_id: str,
@@ -263,7 +292,9 @@ class CBioPortalMCPServer:
         limit: Optional[int] = None,
     ) -> Dict:
         """Get a list of molecular profiles available for a specific cancer study with pagination support."""
-        return await self.molecular_profiles.get_molecular_profiles(study_id, page_number, page_size, sort_by, direction, limit)
+        return await self.molecular_profiles.get_molecular_profiles(
+            study_id, page_number, page_size, sort_by, direction, limit
+        )
 
     async def get_clinical_data(
         self,
@@ -276,7 +307,9 @@ class CBioPortalMCPServer:
         limit: Optional[int] = None,
     ) -> Dict:
         """Get clinical data for patients in a study with pagination support. Can fetch specific attributes or all."""
-        return await self.molecular_profiles.get_clinical_data(study_id, attribute_ids, page_number, page_size, sort_by, direction, limit)
+        return await self.molecular_profiles.get_clinical_data(
+            study_id, attribute_ids, page_number, page_size, sort_by, direction, limit
+        )
 
     async def get_gene_panels_for_study(
         self,
@@ -288,7 +321,9 @@ class CBioPortalMCPServer:
         limit: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """Get all gene panels in a specific study with pagination support."""
-        return await self.molecular_profiles.get_gene_panels_for_study(study_id, page_number, page_size, sort_by, direction, limit)
+        return await self.molecular_profiles.get_gene_panels_for_study(
+            study_id, page_number, page_size, sort_by, direction, limit
+        )
 
     async def get_gene_panel_details(
         self,
@@ -296,14 +331,15 @@ class CBioPortalMCPServer:
         projection: str = "DETAILED",
     ) -> Dict[str, Any]:
         """Get detailed information for a specific gene panel, including the list of genes."""
-        return await self.molecular_profiles.get_gene_panel_details(gene_panel_id, projection)
-
+        return await self.molecular_profiles.get_gene_panel_details(
+            gene_panel_id, projection
+        )
 
 
 def setup_signal_handlers():
     """
     Set up signal handlers for graceful shutdown.
-    
+
     For async applications, it's better to let the KeyboardInterrupt
     exception bubble up naturally rather than using signal handlers
     that call sys.exit(). This allows proper cleanup in the finally block.
@@ -311,13 +347,13 @@ def setup_signal_handlers():
     # Modern async Python applications typically handle SIGINT via KeyboardInterrupt
     # and SIGTERM through the event loop, rather than custom signal handlers
     # that call sys.exit(). This allows proper async cleanup.
-    
+
     def handle_sigterm(signum, frame):
         """Handle SIGTERM by raising KeyboardInterrupt to trigger cleanup."""
         logger.info("SIGTERM received, initiating graceful shutdown...")
         # Instead of sys.exit(), raise KeyboardInterrupt to let the async cleanup handle it
         raise KeyboardInterrupt("SIGTERM received")
-    
+
     # Only handle SIGTERM since SIGINT is naturally handled as KeyboardInterrupt
     signal.signal(signal.SIGTERM, handle_sigterm)
 
@@ -338,9 +374,9 @@ Examples:
   %(prog)s --config config.yaml             # Use config file
   %(prog)s --base-url https://custom.org/api # Override base URL
   %(prog)s --create-example-config           # Create example config
-        """
+        """,
     )
-    
+
     # Configuration file support
     parser.add_argument(
         "--config",
@@ -350,11 +386,11 @@ Examples:
     parser.add_argument(
         "--create-example-config",
         type=str,
-        nargs='?',
+        nargs="?",
         const="cbioportal-mcp-config.example.yaml",
         help="Create an example configuration file and exit. Optionally specify filename.",
     )
-    
+
     # Server configuration
     parser.add_argument(
         "--base-url",
@@ -370,7 +406,7 @@ Examples:
         type=int,
         help="Port for WebSocket transport (for future use). (overrides config file)",
     )
-    
+
     # Logging configuration
     parser.add_argument(
         "--log-level",
@@ -385,7 +421,9 @@ Examples:
         try:
             create_example_config(args.create_example_config)
             print(f"Example configuration created: {args.create_example_config}")
-            print(f"Edit the file and use: {parser.prog} --config {args.create_example_config}")
+            print(
+                f"Edit the file and use: {parser.prog} --config {args.create_example_config}"
+            )
             return
         except Exception as e:
             print(f"Error creating example config: {e}", file=sys.stderr)
@@ -394,27 +432,27 @@ Examples:
     # Load configuration
     try:
         config = load_config(args.config)
-        
+
         # Update config with CLI arguments
         cli_args = {}
         if args.base_url is not None:
-            cli_args['base_url'] = args.base_url
+            cli_args["base_url"] = args.base_url
         if args.transport is not None:
-            cli_args['transport'] = args.transport
+            cli_args["transport"] = args.transport
         if args.port is not None:
-            cli_args['port'] = args.port
+            cli_args["port"] = args.port
         if args.log_level is not None:
-            cli_args['log_level'] = args.log_level
-            
+            cli_args["log_level"] = args.log_level
+
         if cli_args:
             config.update_from_cli_args(cli_args)
-            
+
     except Exception as e:
         print(f"Configuration error: {e}", file=sys.stderr)
         sys.exit(1)
 
     # Configure logging using the loaded configuration
-    log_level = config.get('logging.level')
+    log_level = config.get("logging.level")
     setup_logging(level=log_level)
     global logger  # Use global logger after setup
     logger = get_logger(__name__)  # Re-assign to get logger with new config
@@ -431,7 +469,7 @@ Examples:
 
     server_instance = CBioPortalMCPServer(config=config)
 
-    transport = config.get('server.transport')
+    transport = config.get("server.transport")
     logger.info(f"Using transport: {transport}")
 
     if transport.lower() == "stdio":
@@ -451,7 +489,10 @@ Examples:
         finally:
             logger.info("Server shutdown sequence initiated from main.")
             # Explicitly call shutdown hooks if not handled by FastMCP
-            if hasattr(server_instance, 'api_client') and server_instance.api_client is not None:
+            if (
+                hasattr(server_instance, "api_client")
+                and server_instance.api_client is not None
+            ):
                 await server_instance.shutdown()
             # For now, assuming FastMCP handles it.
     else:
