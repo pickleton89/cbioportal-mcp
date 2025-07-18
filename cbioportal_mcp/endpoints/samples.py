@@ -8,11 +8,8 @@ Contains all sample-related endpoint methods:
 
 from typing import Dict, Optional
 
-from ..api_client import APIClient
-from ..constants import FETCH_ALL_PAGE_SIZE
+from .base import BaseEndpoint, handle_api_errors, validate_paginated_params
 from ..utils.validation import (
-    validate_page_params,
-    validate_sort_params,
     validate_study_id,
 )
 from ..utils.logging import get_logger
@@ -20,12 +17,14 @@ from ..utils.logging import get_logger
 logger = get_logger(__name__)
 
 
-class SamplesEndpoints:
+class SamplesEndpoints(BaseEndpoint):
     """Handles all sample-related endpoints for the cBioPortal MCP server."""
 
-    def __init__(self, api_client: APIClient):
-        self.api_client = api_client
+    def __init__(self, api_client):
+        super().__init__(api_client)
 
+    @handle_api_errors("get samples in study")
+    @validate_paginated_params
     async def get_samples_in_study(
         self,
         study_id: str,
@@ -40,48 +39,16 @@ class SamplesEndpoints:
         """
         # Input Validation
         validate_study_id(study_id)
-        validate_page_params(page_number, page_size, limit)
-        validate_sort_params(sort_by, direction)
-
-        try:
-            api_call_params = {
-                "pageNumber": page_number,
-                "pageSize": page_size,
-                "direction": direction,
-            }
-            if sort_by:
-                api_call_params["sortBy"] = sort_by
-            if limit == 0:
-                api_call_params["pageSize"] = FETCH_ALL_PAGE_SIZE
-
-            samples_from_api = await self.api_client.make_api_request(
-                f"studies/{study_id}/samples", params=api_call_params
-            )
-
-            api_might_have_more = len(samples_from_api) == api_call_params["pageSize"]
-            if (
-                api_call_params["pageSize"] == FETCH_ALL_PAGE_SIZE
-                and len(samples_from_api) < FETCH_ALL_PAGE_SIZE
-            ):
-                api_might_have_more = False
-
-            samples_for_response = samples_from_api
-            if limit and limit > 0 and len(samples_from_api) > limit:
-                samples_for_response = samples_from_api[:limit]
-
-            total_items_in_response = len(samples_for_response)
-
-            return {
-                "samples": samples_for_response,
-                "pagination": {
-                    "page": page_number,
-                    "page_size": page_size,
-                    "total_found": total_items_in_response,
-                    "has_more": api_might_have_more,
-                },
-            }
-        except Exception as e:
-            return {"error": f"Failed to get samples for study {study_id}: {str(e)}"}
+        
+        return await self.paginated_request(
+            endpoint=f"studies/{study_id}/samples",
+            page_number=page_number,
+            page_size=page_size,
+            sort_by=sort_by,
+            direction=direction,
+            limit=limit,
+            data_key="samples"
+        )
 
     async def get_sample_list_id(self, study_id: str, sample_list_id: str) -> Dict:
         """

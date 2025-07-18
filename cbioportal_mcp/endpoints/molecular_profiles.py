@@ -18,6 +18,7 @@ from ..utils.validation import (
     validate_sort_params,
     validate_study_id,
 )
+from ..utils.pagination import collect_all_results
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -29,21 +30,6 @@ class MolecularProfilesEndpoints:
     def __init__(self, api_client: APIClient):
         self.api_client = api_client
 
-    async def collect_all_results(
-        self,
-        endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-        method: str = "GET",
-        json_data: Any = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
-        """Collect all results from a paginated endpoint."""
-        # This is a temporary method - should be moved to utils in future
-        from ..utils.pagination import collect_all_results
-
-        return await collect_all_results(
-            self.api_client, endpoint, params, method, json_data, limit
-        )
 
     async def get_molecular_profiles(
         self,
@@ -240,8 +226,8 @@ class MolecularProfilesEndpoints:
         try:
             if limit is not None:
                 # collect_all_results handles pagination internally up to the limit
-                return await self.collect_all_results(
-                    endpoint, params=params, limit=limit
+                return await collect_all_results(
+                    self.api_client, endpoint, params=params, limit=limit
                 )
             else:
                 # Fetch a single page as defined by page_number and page_size

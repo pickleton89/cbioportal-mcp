@@ -13,39 +13,28 @@ import time
 from typing import Any, Dict, List, Optional
 
 import httpx
-from ..api_client import APIClient
+from .base import BaseEndpoint, handle_api_errors, validate_paginated_params
 from ..utils.validation import (
     validate_page_params,
     validate_sort_params,
     validate_study_id,
     validate_keyword,
 )
+from ..utils.pagination import collect_all_results
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
 
-class StudiesEndpoints:
+class StudiesEndpoints(BaseEndpoint):
     """Handles all study-related endpoints for the cBioPortal MCP server."""
 
-    def __init__(self, api_client: APIClient):
-        self.api_client = api_client
+    def __init__(self, api_client):
+        super().__init__(api_client)
 
-    async def collect_all_results(
-        self,
-        endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-        method: str = "GET",
-        json_data: Any = None,
-    ) -> List[Dict[str, Any]]:
-        """Collect all results from a paginated endpoint."""
-        # This is a temporary method - should be moved to utils in future
-        from ..utils.pagination import collect_all_results
 
-        return await collect_all_results(
-            self.api_client, endpoint, params, method, json_data
-        )
-
+    @handle_api_errors("get cancer studies")
+    @validate_paginated_params
     async def get_cancer_studies(
         self,
         page_number: int = 0,
@@ -67,56 +56,15 @@ class StudiesEndpoints:
         Returns:
             Dictionary containing list of studies and metadata
         """
-        # Input Validation
-        validate_page_params(page_number, page_size, limit)
-        validate_sort_params(sort_by, direction)
-
-        try:
-            # Configure API parameters
-            api_params = {
-                "pageNumber": page_number,
-                "pageSize": page_size,
-                "direction": direction,
-            }
-            if sort_by:
-                api_params["sortBy"] = sort_by
-
-            # Special behavior for limit=0 (fetch all results)
-            if limit == 0:
-                # Use the collect_all_results helper which handles pagination automatically
-                studies_from_api = await self.collect_all_results(
-                    "studies", params=api_params
-                )
-                studies_for_response = studies_from_api
-                has_more = False  # We fetched everything
-            else:
-                # Fetch just the requested page
-                studies_from_api = await self.api_client.make_api_request(
-                    "studies", params=api_params
-                )
-
-                # Apply the limit if specified and smaller than the page results
-                studies_for_response = studies_from_api
-                if limit and 0 < limit < len(studies_from_api):
-                    studies_for_response = studies_from_api[:limit]
-
-                # Determine if there might be more data available
-                has_more = len(studies_from_api) == page_size
-
-            # Count the actual items we're returning
-            total_items = len(studies_for_response)
-
-            return {
-                "studies": studies_for_response,
-                "pagination": {
-                    "page": page_number,
-                    "page_size": page_size,
-                    "total_found": total_items,
-                    "has_more": has_more,
-                },
-            }
-        except Exception as e:
-            return {"error": f"Failed to get cancer studies: {str(e)}"}
+        return await self.paginated_request(
+            endpoint="studies",
+            page_number=page_number,
+            page_size=page_size,
+            sort_by=sort_by,
+            direction=direction,
+            limit=limit,
+            data_key="studies"
+        )
 
     async def search_studies(
         self,
@@ -286,6 +234,8 @@ class StudiesEndpoints:
             },
         }
 
+    @handle_api_errors("get cancer types")
+    @validate_paginated_params
     async def get_cancer_types(
         self,
         page_number: int = 0,
@@ -307,53 +257,12 @@ class StudiesEndpoints:
         Returns:
             Dictionary containing list of cancer types and metadata
         """
-        # Input Validation
-        validate_page_params(page_number, page_size, limit)
-        validate_sort_params(sort_by, direction)
-
-        try:
-            # Configure API parameters
-            api_params = {
-                "pageNumber": page_number,
-                "pageSize": page_size,
-                "direction": direction,
-            }
-            if sort_by:
-                api_params["sortBy"] = sort_by
-
-            # Special behavior for limit=0 (fetch all results)
-            if limit == 0:
-                # Use the collect_all_results helper for automatic pagination
-                types_from_api = await self.collect_all_results(
-                    "cancer-types", params=api_params
-                )
-                types_for_response = types_from_api
-                has_more = False  # We fetched everything
-            else:
-                # Fetch just the requested page
-                types_from_api = await self.api_client.make_api_request(
-                    "cancer-types", params=api_params
-                )
-
-                # Apply the limit if specified and smaller than the page results
-                types_for_response = types_from_api
-                if limit and 0 < limit < len(types_from_api):
-                    types_for_response = types_from_api[:limit]
-
-                # Determine if there might be more data available
-                has_more = len(types_from_api) == page_size
-
-            # Count the actual items we're returning
-            total_items = len(types_for_response)
-
-            return {
-                "cancer_types": types_for_response,
-                "pagination": {
-                    "page": page_number,
-                    "page_size": page_size,
-                    "total_found": total_items,
-                    "has_more": has_more,
-                },
-            }
-        except Exception as e:
-            return {"error": f"Failed to get cancer types: {str(e)}"}
+        return await self.paginated_request(
+            endpoint="cancer-types",
+            page_number=page_number,
+            page_size=page_size,
+            sort_by=sort_by,
+            direction=direction,
+            limit=limit,
+            data_key="cancer_types"
+        )
