@@ -4,7 +4,7 @@
 [![uv](https://img.shields.io/badge/uv-package%20manager-blue.svg)](https://github.com/astral-sh/uv)
 [![MCP](https://img.shields.io/badge/MCP-2.0+-green.svg)](https://github.com/model-context-protocol/mcp)
 [![FastMCP](https://img.shields.io/badge/FastMCP-framework-orange.svg)](https://github.com/jlowin/fastmcp)
-[![Tests](https://img.shields.io/badge/tests-92%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-93%20passing-brightgreen.svg)](#testing)
 [![Code Coverage](https://img.shields.io/badge/coverage-comprehensive-brightgreen.svg)](#development)
 
 A high-performance, production-ready **Model Context Protocol (MCP) server** that enables AI assistants to seamlessly interact with cancer genomics data from [cBioPortal](https://www.cbioportal.org/). Built with modern **async Python architecture** and **modular design** for enterprise-grade reliability and **4.5x faster performance**.
@@ -53,7 +53,7 @@ This project demonstrates **cutting-edge human-AI collaboration** in bioinformat
 pipx install uv
 
 # Clone and setup
-git clone https://github.com/pickleton89/cbioportal-mcp.git
+git clone https://github.com/yourusername/cbioportal-mcp.git
 cd cbioportal-mcp
 uv sync
 
@@ -74,14 +74,11 @@ pipx install uv
 # Or with Homebrew: brew install uv
 
 # Clone repository
-git clone https://github.com/pickleton89/cbioportal-mcp.git
+git clone https://github.com/yourusername/cbioportal-mcp.git
 cd cbioportal-mcp
 
 # One-command setup (creates venv + installs dependencies)
 uv sync
-
-# Alternative: development mode with all dev dependencies
-uv sync --group dev
 ```
 
 ### 🐍 **Option 2: pip (Traditional)**
@@ -188,7 +185,7 @@ Add to your workspace settings:
 ### 🏃‍♂️ **Command Line Usage**
 ```bash
 # Development server with debug logging
-uv run python cbioportal_server.py --log-level DEBUG
+uv run cbioportal-mcp --log-level DEBUG
 
 # Production server with custom config
 uv run cbioportal-mcp --config production.yaml
@@ -202,20 +199,21 @@ uv run cbioportal-mcp --base-url https://private-instance.org/api
 ### 📁 **Modern Project Structure**
 ```
 cbioportal-mcp/
-├── 📊 cbioportal_server.py      # Main MCP server (396 lines - 71% reduction!)
-├── 🌐 api_client.py             # Dedicated HTTP client class
-├── ⚙️ config.py                 # Multi-layer configuration system
-├── 📋 constants.py              # Centralized constants
-├── 📁 endpoints/                # Domain-specific API modules
-│   ├── 🔬 studies.py           # Cancer studies & search
-│   ├── 🧬 genes.py             # Gene operations & mutations
-│   ├── 🧪 samples.py           # Sample data management
-│   └── 📈 molecular_profiles.py # Molecular & clinical data
-├── 📁 utils/                    # Shared utilities
-│   ├── 📄 pagination.py        # Efficient pagination logic
-│   ├── ✅ validation.py        # Input validation
-│   └── 📝 logging.py           # Logging configuration
-├── 📁 tests/                    # Comprehensive test suite (92 tests)
+├── 📁 cbioportal_mcp/           # Main package directory
+│   ├── 📊 server.py             # Main MCP server implementation
+│   ├── 🌐 api_client.py         # Dedicated HTTP client class
+│   ├── ⚙️ config.py             # Multi-layer configuration system
+│   ├── 📋 constants.py          # Centralized constants
+│   ├── 📁 endpoints/            # Domain-specific API modules
+│   │   ├── 🔬 studies.py        # Cancer studies & search
+│   │   ├── 🧬 genes.py          # Gene operations & mutations
+│   │   ├── 🧪 samples.py        # Sample data management
+│   │   └── 📈 molecular_profiles.py # Molecular & clinical data
+│   └── 📁 utils/                # Shared utilities
+│       ├── 📄 pagination.py     # Efficient pagination logic
+│       ├── ✅ validation.py     # Input validation
+│       └── 📝 logging.py        # Logging configuration
+├── 📁 tests/                    # Comprehensive test suite (93 tests)
 ├── 📁 docs/                     # Documentation
 ├── 📁 scripts/                  # Development utilities
 └── 📄 pyproject.toml           # Modern Python project config
@@ -281,7 +279,7 @@ Our async implementation delivers significant performance improvements:
 ### 🔨 **Development Workflow**
 ```bash
 # Setup development environment
-uv sync --group dev
+uv sync
 
 # Run tests
 uv run pytest
@@ -303,7 +301,7 @@ uv run ruff format .
 ```
 
 ### 🧪 **Testing**
-Comprehensive test suite with **92 tests** across 8 categories:
+Comprehensive test suite with **93 tests** across 8 categories:
 
 - **🔄 `test_server_lifecycle.py`** - Server startup/shutdown & tool registration
 - **📄 `test_pagination.py`** - Pagination logic & edge cases
