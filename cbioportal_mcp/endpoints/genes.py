@@ -27,8 +27,9 @@ logger = get_logger(__name__)
 class GenesEndpoints:
     """Handles all gene-related endpoints for the cBioPortal MCP server."""
 
-    def __init__(self, api_client: APIClient):
+    def __init__(self, api_client: APIClient, config=None):
         self.api_client = api_client
+        self.config = config
 
     async def search_genes(
         self,
@@ -155,7 +156,8 @@ class GenesEndpoints:
 
         # For large gene lists, break into smaller batches for API compatibility
         batch_size = (
-            100  # cBioPortal API handles batches better than very large requests
+            self.config.get("api.batch_size.genes", 100) if self.config
+            else 100  # Default to 100 if no config provided
         )
         gene_batches = [
             gene_ids[i : i + batch_size] for i in range(0, len(gene_ids), batch_size)

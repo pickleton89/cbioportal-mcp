@@ -4,6 +4,48 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ## [Unreleased]
 
+### 2025-07-20
+
+#### Code Quality Improvements Based on External Review
+
+**Comprehensive Code Quality Fixes**:
+- **Fixed outdated imports in example scripts** (scripts/test_async.py and scripts/quick_test.py):
+  - Updated imports from old flat structure to proper package imports: `cbioportal_mcp.server` and `cbioportal_mcp.config`
+  - Updated server initialization to use Configuration-based constructor with dependency injection
+  - All development scripts now work with current architecture
+
+- **Replaced custom deep copy implementation** (config.py):
+  - Removed manual recursive dictionary copying in `_deep_copy_dict()` method
+  - Replaced with standard library `copy.deepcopy()` for better reliability and maintainability
+  - Added proper import for copy module
+
+- **Eliminated global logger reassignment** (server.py):
+  - Removed problematic `global logger` declaration and reassignment in main function
+  - Replaced with local `config_logger` variable for cleaner code organization
+  - Updated all subsequent logger references to use the local variable
+  - Prevents potential issues with global state modification
+
+- **Made gene batch size configurable** (config.py, endpoints/genes.py, server.py):
+  - Added `api.batch_size.genes` configuration option with default value of 100
+  - Added environment variable support: `CBIOPORTAL_GENE_BATCH_SIZE`
+  - Added proper validation for batch size (must be positive integer)
+  - Updated GenesEndpoints to accept configuration and use configurable batch size
+  - Enhanced server initialization to pass configuration to GenesEndpoints
+
+- **Added comprehensive Ruff configuration** (pyproject.toml):
+  - Configured linter rules: pycodestyle, pyflakes, isort, flake8-bugbear, comprehensions, pyupgrade, simplify
+  - Set line length to 88 characters and target Python 3.10+
+  - Added formatter configuration with proper quote style and indentation
+  - Configured import sorting with known first-party packages
+  - Ignored specific rules where appropriate (E501 for line length, B008 for function defaults)
+
+**Quality Assurance**:
+- All 93 tests continue to pass after code quality improvements
+- Zero functional regressions introduced by cleanup
+- Improved code maintainability and adherence to Python best practices
+- Enhanced configurability for deployment flexibility
+- Added modern linting infrastructure for ongoing code quality
+
 ### 2025-07-18
 
 #### Major Code Duplication Refactoring Complete

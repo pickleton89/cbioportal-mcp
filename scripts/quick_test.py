@@ -9,8 +9,8 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cbioportal_server import CBioPortalMCPServer
-from config import Configuration
+from cbioportal_mcp.server import CBioPortalMCPServer
+from cbioportal_mcp.config import Configuration
 
 
 async def run_test():

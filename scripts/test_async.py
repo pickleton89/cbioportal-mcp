@@ -11,15 +11,17 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cbioportal_server import CBioPortalMCPServer
+from cbioportal_mcp.server import CBioPortalMCPServer
+from cbioportal_mcp.config import Configuration
 
 
 async def test_sequential_vs_concurrent():
     """Compare sequential vs concurrent fetching of multiple studies."""
     print("\n====== Testing Sequential vs Concurrent Performance ======")
 
-    # Initialize the server
-    server = CBioPortalMCPServer()
+    # Initialize the server with configuration
+    config = Configuration()
+    server = CBioPortalMCPServer(config)
 
     # Sample study IDs from cBioPortal
     study_ids = [
@@ -90,8 +92,9 @@ async def test_gene_batch_concurrency():
     """Test the concurrent gene batching functionality."""
     print("\n====== Testing Gene Batch Concurrency ======")
 
-    # Initialize the server
-    server = CBioPortalMCPServer()
+    # Initialize the server with configuration
+    config = Configuration()
+    server = CBioPortalMCPServer(config)
 
     # Sample gene IDs (mix of Entrez IDs and Hugo symbols)
     gene_ids = [

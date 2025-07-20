@@ -45,7 +45,7 @@ class CBioPortalMCPServer:
 
         # Initialize endpoint modules with dependency injection
         self.studies = StudiesEndpoints(self.api_client)
-        self.genes = GenesEndpoints(self.api_client)
+        self.genes = GenesEndpoints(self.api_client, config)
         self.samples = SamplesEndpoints(self.api_client)
         self.molecular_profiles = MolecularProfilesEndpoints(self.api_client)
 
@@ -454,23 +454,23 @@ Examples:
     # Configure logging using the loaded configuration
     log_level = config.get("logging.level")
     setup_logging(level=log_level)
-    global logger  # Use global logger after setup
-    logger = get_logger(__name__)  # Re-assign to get logger with new config
+    # Get logger with new configuration - no global reassignment needed
+    config_logger = get_logger(__name__)
 
     setup_signal_handlers()  # Setup signal handlers for graceful shutdown
 
     # Log configuration info
-    logger.info("Starting cBioPortal MCP Server")
-    logger.info(f"Base URL: {config.get('server.base_url')}")
-    logger.info(f"Transport: {config.get('server.transport')}")
-    logger.info(f"Client timeout: {config.get('server.client_timeout')}s")
+    config_logger.info("Starting cBioPortal MCP Server")
+    config_logger.info(f"Base URL: {config.get('server.base_url')}")
+    config_logger.info(f"Transport: {config.get('server.transport')}")
+    config_logger.info(f"Client timeout: {config.get('server.client_timeout')}s")
     if args.config:
-        logger.info(f"Configuration file: {args.config}")
+        config_logger.info(f"Configuration file: {args.config}")
 
     server_instance = CBioPortalMCPServer(config=config)
 
     transport = config.get("server.transport")
-    logger.info(f"Using transport: {transport}")
+    config_logger.info(f"Using transport: {transport}")
 
     if transport.lower() == "stdio":
         try:
@@ -480,14 +480,14 @@ Examples:
         except KeyboardInterrupt as e:
             # Handle both Ctrl+C and SIGTERM gracefully
             interrupt_msg = str(e) if str(e) else "user interrupt (Ctrl+C)"
-            logger.info(f"Server interrupted by {interrupt_msg}.")
+            config_logger.info(f"Server interrupted by {interrupt_msg}.")
         except Exception as e:
-            logger.error(
+            config_logger.error(
                 f"An unexpected error occurred during server execution: {e}",
                 exc_info=True,
             )
         finally:
-            logger.info("Server shutdown sequence initiated from main.")
+            config_logger.info("Server shutdown sequence initiated from main.")
             # Explicitly call shutdown hooks if not handled by FastMCP
             if (
                 hasattr(server_instance, "api_client")
@@ -496,10 +496,10 @@ Examples:
                 await server_instance.shutdown()
             # For now, assuming FastMCP handles it.
     else:
-        logger.error(f"Unsupported transport: {transport}")
+        config_logger.error(f"Unsupported transport: {transport}")
         sys.exit(1)
 
-    logger.info("cBioPortal MCP Server has shut down.")
+    config_logger.info("cBioPortal MCP Server has shut down.")
 
 
 def cli_main():

@@ -4,6 +4,7 @@ Configuration management for cBioPortal MCP Server.
 Supports YAML configuration files, environment variables, and CLI overrides.
 """
 
+import copy
 import os
 import sys
 from pathlib import Path
@@ -58,6 +59,9 @@ class Configuration:
                 "enabled": False,
                 "ttl_seconds": 300,
             },
+            "batch_size": {
+                "genes": 100,  # Batch size for gene API requests
+            },
         },
     }
 
@@ -75,6 +79,7 @@ class Configuration:
         "CBIOPORTAL_RETRY_MAX_ATTEMPTS": "api.retry.max_attempts",
         "CBIOPORTAL_CACHE_ENABLED": "api.cache.enabled",
         "CBIOPORTAL_CACHE_TTL": "api.cache.ttl_seconds",
+        "CBIOPORTAL_GENE_BATCH_SIZE": "api.batch_size.genes",
     }
 
     def __init__(self, config_file: Optional[Union[str, Path]] = None):
@@ -197,13 +202,7 @@ class Configuration:
 
     def _deep_copy_dict(self, d: Dict[str, Any]) -> Dict[str, Any]:
         """Create a deep copy of a dictionary."""
-        result = {}
-        for key, value in d.items():
-            if isinstance(value, dict):
-                result[key] = self._deep_copy_dict(value)
-            else:
-                result[key] = value
-        return result
+        return copy.deepcopy(d)
 
     def _validate_configuration(self):
         """Validate the loaded configuration."""
@@ -281,6 +280,13 @@ class Configuration:
         if not isinstance(max_attempts, int) or max_attempts < 1:
             raise ConfigurationError(
                 "api.retry.max_attempts must be a positive integer"
+            )
+
+        # Validate batch sizes
+        gene_batch_size = self.get("api.batch_size.genes")
+        if not isinstance(gene_batch_size, int) or gene_batch_size < 1:
+            raise ConfigurationError(
+                "api.batch_size.genes must be a positive integer"
             )
 
     def get(self, path: str, default: Any = None) -> Any:
@@ -405,6 +411,9 @@ def create_example_config(file_path: Union[str, Path]):
             "cache": {
                 "enabled": False,
                 "ttl_seconds": 300,
+            },
+            "batch_size": {
+                "genes": 100,  # Batch size for gene API requests
             },
         },
     }
