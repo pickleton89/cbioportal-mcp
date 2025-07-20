@@ -50,6 +50,7 @@ class SamplesEndpoints(BaseEndpoint):
             data_key="samples"
         )
 
+    @handle_api_errors("get sample list id")
     async def get_sample_list_id(self, study_id: str, sample_list_id: str) -> Dict:
         """
         Get sample list information for a specific study and sample list ID.

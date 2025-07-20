@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 import httpx
 from ..api_client import APIClient
 from ..constants import FETCH_ALL_PAGE_SIZE
+from .base import handle_api_errors
 from ..utils.validation import (
     validate_page_params,
     validate_sort_params,
@@ -31,6 +32,7 @@ class MolecularProfilesEndpoints:
         self.api_client = api_client
 
 
+    @handle_api_errors("get molecular profiles")
     async def get_molecular_profiles(
         self,
         study_id: str,
@@ -78,6 +80,7 @@ class MolecularProfilesEndpoints:
                 "error": f"Failed to get molecular profiles for {study_id}: {str(e)}"
             }
 
+    @handle_api_errors("get clinical data")
     async def get_clinical_data(
         self,
         study_id: str,
@@ -174,6 +177,7 @@ class MolecularProfilesEndpoints:
                 "error": f"Failed to get clinical data for study {study_id}: {str(e)}"
             }
 
+    @handle_api_errors("get gene panels for study")
     async def get_gene_panels_for_study(
         self,
         study_id: str,
@@ -250,6 +254,7 @@ class MolecularProfilesEndpoints:
             )
             return {"error": "Unexpected server error", "details": str(e)}
 
+    @handle_api_errors("get gene panel details")
     async def get_gene_panel_details(
         self,
         gene_panel_id: str,

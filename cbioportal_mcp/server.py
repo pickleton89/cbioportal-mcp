@@ -63,6 +63,15 @@ class CBioPortalMCPServer:
         # Register MCP tools
         self._register_tools()
 
+    async def _ensure_api_client_ready(self):
+        """Ensure APIClient is initialized for MCP compatibility."""
+        try:
+            if not hasattr(self.api_client, '_client') or self.api_client._client is None:
+                await self.api_client.startup()
+                logger.info("APIClient initialized via _ensure_api_client_ready")
+        except Exception as e:
+            logger.error(f"Failed to initialize APIClient: {e}")
+
     async def startup(self):
         """Initialize async resources when server starts."""
         # self.client = httpx.AsyncClient(timeout=480.0) # Removed

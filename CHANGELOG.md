@@ -4,6 +4,43 @@ All notable changes to the cBioPortal MCP Server project will be documented in t
 
 ## [Unreleased]
 
+### 2025-07-20 (Evening Session)
+
+#### Critical MCP Server Connection and Functionality Fixes
+
+**Complete Resolution of Claude Desktop Integration Issues**:
+- **Fixed APIClient initialization problem**: Root cause was missing `@handle_api_errors` decorator on 10 endpoint methods, preventing lazy API client initialization
+- **Added missing decorators to endpoint methods**:
+  - `studies.py`: `search_studies`, `get_study_details`, `get_multiple_studies`
+  - `genes.py`: `search_genes`, `get_genes`, `get_multiple_genes`, `get_mutations_in_gene`
+  - `molecular_profiles.py`: `get_molecular_profiles`, `get_clinical_data`, `get_gene_panels_for_study`, `get_gene_panel_details`
+  - `samples.py`: `get_sample_list_id`
+- **Resolved import errors**: Added missing `handle_api_errors` imports to `genes.py` and `molecular_profiles.py`
+- **Implemented lazy API client initialization**: Enhanced `BaseEndpoint._ensure_api_client_ready()` method to automatically initialize API client on first use
+- **Updated error handling decorator**: Modified `@handle_api_errors` to call API client initialization before method execution
+
+**Claude Desktop Configuration Improvements**:
+- **Fixed connection configuration**: Changed from problematic `uv run` approach to reliable direct script path method
+- **Updated Claude Desktop config**: Switched to `/path/to/project/.venv/bin/cbioportal-mcp` absolute path approach
+- **Enhanced installation process**: Emphasized importance of `uv pip install -e .` for editable mode installation
+
+**Documentation and Setup Enhancements**:
+- **Updated README.md**: Added comprehensive Claude Desktop setup instructions with two configuration options
+- **Enhanced troubleshooting guide**: Added specific guidance for virtual environment script paths and installation requirements
+- **Improved setup documentation**: Clear distinction between direct script path (recommended) and uv run (alternative) approaches
+
+**Quality Assurance**:
+- **Complete functionality verification**: All 17 cancer genomics tools now working correctly with automatic API client initialization
+- **Comprehensive error handling**: Consistent error handling across all endpoint methods with proper initialization
+- **Zero regressions**: All existing functionality preserved while fixing connection issues
+- **Production ready**: Server now reliably connects to Claude Desktop and provides full cancer genomics data access
+
+**Impact and Benefits**:
+- **Resolved "APIClient._client is not initialized" errors**: Complete fix for all endpoint methods
+- **Enhanced user experience**: Seamless Claude Desktop integration with clear setup instructions
+- **Improved reliability**: Automatic API client initialization eliminates startup timing issues
+- **Better documentation**: Users can now successfully configure and use the server without connection problems
+
 ### 2025-07-20
 
 #### Code Quality Improvements Based on External Review

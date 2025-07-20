@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 
 from ..api_client import APIClient
 from ..constants import FETCH_ALL_PAGE_SIZE
+from .base import handle_api_errors
 from ..utils.validation import (
     validate_page_params,
     validate_sort_params,
@@ -31,6 +32,7 @@ class GenesEndpoints:
         self.api_client = api_client
         self.config = config
 
+    @handle_api_errors("search genes")
     async def search_genes(
         self,
         keyword: str,
@@ -94,6 +96,7 @@ class GenesEndpoints:
         except Exception as e:
             return {"error": f"Failed to search genes: {str(e)}"}
 
+    @handle_api_errors("get genes")
     async def get_genes(
         self,
         gene_ids: List[str],
@@ -120,6 +123,7 @@ class GenesEndpoints:
         except Exception as e:
             return {"error": f"Failed to get gene information: {str(e)}"}
 
+    @handle_api_errors("get multiple genes")
     async def get_multiple_genes(
         self,
         gene_ids: List[str],
@@ -209,6 +213,7 @@ class GenesEndpoints:
             },
         }
 
+    @handle_api_errors("get mutations in gene")
     async def get_mutations_in_gene(
         self,
         gene_id: str,

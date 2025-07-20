@@ -180,13 +180,12 @@ uv run cbioportal-mcp --create-example-config
 ### 🖥️ **Claude Desktop Integration**
 Configure in your Claude Desktop MCP settings:
 
+**Option 1: Direct Script Path (Recommended)**
 ```json
 {
   "mcpServers": {
     "cbioportal": {
-      "command": "uv",
-      "args": ["run", "cbioportal-mcp"],
-      "cwd": "/path/to/cbioportal-mcp",
+      "command": "/path/to/your/project/cbioportal_MCP/.venv/bin/cbioportal-mcp",
       "env": {
         "CBIOPORTAL_LOG_LEVEL": "INFO"
       }
@@ -194,6 +193,27 @@ Configure in your Claude Desktop MCP settings:
   }
 }
 ```
+
+**Option 2: uv run (Alternative)**
+```json
+{
+  "mcpServers": {
+    "cbioportal": {
+      "command": "uv",
+      "args": ["run", "cbioportal-mcp"],
+      "cwd": "/path/to/your/project/cbioportal_MCP",
+      "env": {
+        "CBIOPORTAL_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
+
+**Important Setup Steps:**
+1. Replace `/path/to/your/project/cbioportal_MCP` with your actual project path
+2. Ensure the project is installed in editable mode: `uv pip install -e .`
+3. Restart Claude Desktop after updating the configuration
 
 ### 🔧 **VS Code Integration**
 Add to your workspace settings:
@@ -378,9 +398,11 @@ uv run python -c "import mcp, httpx, fastmcp; print('Dependencies OK')"
 ```
 
 #### **Claude Desktop Connection Issues**
-- ✅ Verify paths in MCP configuration are absolute
-- ✅ Check that `uv` is in your system PATH
-- ✅ Ensure `cwd` points to project directory
+- ✅ **Use direct script path** (Option 1) for most reliable connection
+- ✅ Verify paths in MCP configuration are absolute (no `~` or relative paths)
+- ✅ **Install in editable mode**: Run `uv pip install -e .` in project directory
+- ✅ Ensure the virtual environment `.venv/bin/cbioportal-mcp` script exists
+- ✅ For Option 2: Check that `uv` is in your system PATH and `cwd` points to project directory
 - ✅ Review Claude Desktop logs for detailed errors
 
 #### **Performance Issues**

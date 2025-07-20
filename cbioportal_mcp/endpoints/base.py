@@ -30,6 +30,9 @@ def handle_api_errors(operation_name: str):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             try:
+                # Ensure API client is ready for BaseEndpoint instances
+                if len(args) > 0 and hasattr(args[0], '_ensure_api_client_ready'):
+                    await args[0]._ensure_api_client_ready()
                 return await func(*args, **kwargs)
             except (ValueError, TypeError) as e:
                 # Re-raise validation errors so they can be caught by tests
@@ -83,6 +86,12 @@ class BaseEndpoint:
     
     def __init__(self, api_client: APIClient):
         self.api_client = api_client
+    
+    async def _ensure_api_client_ready(self):
+        """Ensure APIClient is initialized before making requests."""
+        if not hasattr(self.api_client, '_client') or self.api_client._client is None:
+            await self.api_client.startup()
+            logger.info("APIClient initialized via BaseEndpoint._ensure_api_client_ready")
     
     def build_pagination_params(
         self,

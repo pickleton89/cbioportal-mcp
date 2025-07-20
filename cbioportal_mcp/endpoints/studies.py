@@ -66,6 +66,7 @@ class StudiesEndpoints(BaseEndpoint):
             data_key="studies"
         )
 
+    @handle_api_errors("search studies")
     async def search_studies(
         self,
         keyword: str,
@@ -159,6 +160,7 @@ class StudiesEndpoints(BaseEndpoint):
                 "error": f"Failed to search studies for '{keyword}': An unexpected error occurred - {str(e)}"
             }
 
+    @handle_api_errors("get study details")
     async def get_study_details(self, study_id: str) -> Dict[str, Any]:
         """
         Get detailed information for a specific cancer study.
@@ -179,6 +181,7 @@ class StudiesEndpoints(BaseEndpoint):
         except Exception as e:
             return {"error": f"Failed to get study details for {study_id}: {str(e)}"}
 
+    @handle_api_errors("get multiple studies")
     async def get_multiple_studies(self, study_ids: List[str]) -> Dict:
         """
         Get details for multiple studies concurrently.
